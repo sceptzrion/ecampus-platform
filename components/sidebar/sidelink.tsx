@@ -97,7 +97,7 @@ function NavItem({
     <li className={`py-3 px-5 text-[15px]`}>
       <Link
         href={href}
-        className={`flex flex-row items-center gap-2 transition-colors ${
+        className={`flex flex-row items-center transition-colors ${
           active ? "text-[#15B2C5] font-medium" : "hover:text-[#15B2C5]"
         }`}
         aria-current={active ? "page" : undefined}
