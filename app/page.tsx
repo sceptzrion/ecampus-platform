@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
   
 export default function Home() {
-  redirect("/dashboard/dashboard-akademik");
+  redirect("/auth/login");
   return (
     <div>
       <p></p>

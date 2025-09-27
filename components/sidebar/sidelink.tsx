@@ -7,6 +7,8 @@ import { usePathname } from "next/navigation";
 export default function Sidelink() {
   const pathname = usePathname();
 
+  const isDashboard = pathname === "/dashboard/dashboard-akademik";
+
   return (
     <ul className="flex flex-col text-[#7D849A]">
       {/* MENU */}
@@ -16,8 +18,8 @@ export default function Sidelink() {
       <NavItem
         href="/dashboard/dashboard-akademik"
         label="Dashboard"
-        icon="/cubes.png"
-        active={pathname === "/dashboard/dashboard-akademik"}
+        icon={isDashboard ? "/cubes.png" : "/dashboard-inactive.png"}
+        active={isDashboard}
       />
 
       {/* DATA DASAR */}
@@ -74,7 +76,7 @@ export default function Sidelink() {
         label="Tugas Akhir"
         icon="/tukhir.png"
         active={pathname.startsWith("/tugas-akhir-mahasiswa")}
-        withBg // tambahan properti khusus untuk background icon
+        withBg
       />
     </ul>
   );
@@ -94,15 +96,14 @@ function NavItem({
   withBg?: boolean;
 }) {
   return (
-    <li className={`py-3 px-5 text-[15px]`}>
+    <li className="py-3 px-5 text-[15px]">
       <Link
         href={href}
+        aria-current={active ? "page" : undefined}
         className={`flex flex-row items-center transition-colors ${
           active ? "text-[#15B2C5] font-medium" : "hover:text-[#15B2C5]"
         }`}
-        aria-current={active ? "page" : undefined}
       >
-        {/* icon wrapper */}
         {withBg ? (
           <span className="ml-[3px] mr-2.5 inline-flex items-center justify-center w-5 h-5 rounded bg-[#6E768E]">
             <Image src={icon} alt={label} width={13} height={13} />
