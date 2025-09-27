@@ -1,4 +1,11 @@
 import Footer from "@/components/footer";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard"
+};
+
+
 export default function DashboardAkademik() {
   return (
     <div className="flex flex-col mt-[70px] ml-[240px] w-auto px-7">

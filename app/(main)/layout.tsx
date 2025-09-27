@@ -14,7 +14,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <Navbar />
 
         {/* Konten */}
-        <main className="flex-1 p-6 bg-[#F1F2F4]">{children}</main>
+        <main className="flex-1 bg-[#F1F2F4]">{children}</main>
       </div>
     </div>
   );
