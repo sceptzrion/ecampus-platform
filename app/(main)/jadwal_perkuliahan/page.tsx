@@ -65,7 +65,7 @@ export default function DashboardAkademik() {
       </div>
 
       {/* Jadwal Cards */}
-      <main className="p-5">
+      <div className="p-5 space-y-4">
         <Jadwal
           matkul="CAPSTONE PROJECT (FIK61575)"
           kode="2515520028"
@@ -75,9 +75,7 @@ export default function DashboardAkademik() {
           hariJam="Senin, 07:30 - 10:00 WIB"
           kelas="251-7A-22 - 251-7A-22"
         />
-      </main>
 
-      <main className="p-5">
         <Jadwal
           matkul="CAPSTONE PROJECT (FIK61575)"
           kode="2515520028"
@@ -87,7 +85,7 @@ export default function DashboardAkademik() {
           hariJam="Senin, 07:30 - 10:00 WIB"
           kelas="251-7A-22 - 251-7A-22"
         />
-      </main>
+      </div>
 
       <Footer />
     </div>

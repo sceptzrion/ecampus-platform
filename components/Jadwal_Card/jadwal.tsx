@@ -21,7 +21,7 @@ const Jadwal = ({
   kelas,
 }: JadwalProps) => {
   return (
-    <div className="relative w-full bg-white shadow-md rounded-xl border border-gray-100 p-5 mb-5 overflow-hidden">
+    <div className="relative w-full bg-white shadow-md rounded-xl border border-gray-100 p-5 mb-5 overflow-hidden  ">
       {/* Shadow kiri */}
       <div className="absolute top-0 left-0 h-full w-1 shadow-[ -4px_0_10px_0_#6658DD ]"></div>
 
