@@ -3,7 +3,7 @@ import Navlink from "@/components/navbar/navlink"
 
 const Navbar = () => {
   return (
-    <div className="fixed top-0 w-full bg-white">
+    <div className="fixed top-0 z-[9999] w-full bg-white">
         <div className="flex items-center justify-between pr-2 h-18">
             <div className="flex flex-row h-auto">
                 <p className="flex w-[240px] gap-1 text-[14px] justify-center items-center flex-row text-[#7669E0]">

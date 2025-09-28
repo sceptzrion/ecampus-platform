@@ -5,10 +5,9 @@ export const metadata: Metadata = {
   title: "Dashboard"
 };
 
-
 export default function DashboardAkademik() {
   return (
-    <div className="flex flex-col mt-[70px] ml-[240px] w-auto px-7">
+    <>
         <div className="flex flex-row h-[75px] justify-between items-center">
             <h1 className="text-xl font-semibold text-[#323a46] leading-[75px]">Dashboard</h1>
             <p className="text-[#ACB4C8] font-normal text-[14px]">Dashboard</p>
@@ -46,8 +45,7 @@ export default function DashboardAkademik() {
                     </div>
                 </div>
             </div>
-            <Footer />
         </div>
-    </div>
+    </>
   );
 }
