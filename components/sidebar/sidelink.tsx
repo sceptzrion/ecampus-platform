@@ -10,75 +10,77 @@ export default function Sidelink() {
   const isDashboard = pathname === "/dashboard/dashboard-akademik";
 
   return (
-    <ul className="flex flex-col text-[#7D849A]">
-      {/* MENU */}
-      <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
-        MENU
-      </li>
-      <NavItem
-        href="/dashboard/dashboard-akademik"
-        label="Dashboard"
-        icon={isDashboard ? "/cubes.png" : "/dashboard-inactive.png"}
-        active={isDashboard}
-      />
+    <div className="fixed">
+      <ul className="flex flex-col text-[#7D849A]">
+        {/* MENU */}
+        <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
+          MENU
+        </li>
+        <NavItem
+          href="/dashboard/dashboard-akademik"
+          label="Dashboard"
+          icon={isDashboard ? "/cubes.png" : "/dashboard-inactive.png"}
+          active={isDashboard}
+        />
 
-      {/* DATA DASAR */}
-      <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
-        DATA DASAR
-      </li>
-      <NavItem
-        href="/biodata-mahasiswa"
-        label="Biodata Mahasiswa"
-        icon="/biodata.png"
-        active={pathname.startsWith("/biodata-mahasiswa")}
-      />
+        {/* DATA DASAR */}
+        <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
+          DATA DASAR
+        </li>
+        <NavItem
+          href="/biodata-mahasiswa"
+          label="Biodata Mahasiswa"
+          icon="/biodata.png"
+          active={pathname.startsWith("/biodata-mahasiswa")}
+        />
 
-      {/* PRAPERKULIAHAN */}
-      <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
-        PRAPERKULIAHAN
-      </li>
-      <NavItem
-        href="/registrasi/detail"
-        label="Registrasi"
-        icon="/biodata.png"
-        active={pathname.startsWith("/registrasi/detail")}
-      />
-      <NavItem
-        href="/krs-mahasiswa"
-        label="Rencana Studi"
-        icon="/checklist.png"
-        active={pathname.startsWith("/krs-mahasiswa")}
-      />
+        {/* PRAPERKULIAHAN */}
+        <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
+          PRAPERKULIAHAN
+        </li>
+        <NavItem
+          href="/registrasi/detail"
+          label="Registrasi"
+          icon="/biodata.png"
+          active={pathname.startsWith("/registrasi/detail")}
+        />
+        <NavItem
+          href="/krs-mahasiswa"
+          label="Rencana Studi"
+          icon="/checklist.png"
+          active={pathname.startsWith("/krs-mahasiswa")}
+        />
 
-      {/* PERKULIAHAN */}
-      <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
-        PERKULIAHAN
-      </li>
-      <NavItem
-        href="/jadwal_perkuliahan"
-        label="Jadwal Perkuliahan"
-        icon="/checklist.png"
-        active={pathname.startsWith("/jadwal_perkuliahan")}
-      />
-      <NavItem
-        href="/hasil-studi"
-        label="Hasil Studi"
-        icon="/hasil_checklist.png"
-        active={pathname.startsWith("/hasil-studi")}
-      />
+        {/* PERKULIAHAN */}
+        <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
+          PERKULIAHAN
+        </li>
+        <NavItem
+          href="/jadwal_perkuliahan"
+          label="Jadwal Perkuliahan"
+          icon="/checklist.png"
+          active={pathname.startsWith("/jadwal_perkuliahan")}
+        />
+        <NavItem
+          href="/hasil-studi"
+          label="Hasil Studi"
+          icon="/hasil_checklist.png"
+          active={pathname.startsWith("/hasil-studi")}
+        />
 
-      {/* TUGAS AKHIR */}
-      <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
-        TUGAS AKHIR
-      </li>
-      <NavItem
-        href="/tugas-akhir-mahasiswa"
-        label="Tugas Akhir"
-        icon="/tukhir.png"
-        active={pathname.startsWith("/tugas-akhir-mahasiswa")}
-        withBg
-      />
-    </ul>
+        {/* TUGAS AKHIR */}
+        <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
+          TUGAS AKHIR
+        </li>
+        <NavItem
+          href="/tugas-akhir-mahasiswa"
+          label="Tugas Akhir"
+          icon="/tukhir.png"
+          active={pathname.startsWith("/tugas-akhir-mahasiswa")}
+          withBg
+        />
+      </ul>
+    </div>
   );
 }
 
