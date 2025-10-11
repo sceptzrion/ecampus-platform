@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "Login"
 };
 
-export const LoginPage = () => {
+export default function LoginPage() {
   return (
     <>
       <h4 className='text-center mt-6 mb-9 text-[#98A6AD] text-sm'>
@@ -22,5 +22,3 @@ export const LoginPage = () => {
     
   )
 }
-
-export default LoginPage
