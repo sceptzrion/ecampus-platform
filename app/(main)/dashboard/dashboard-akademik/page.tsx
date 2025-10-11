@@ -10,7 +10,7 @@ export default function DashboardAkademik() {
     <>
         <div className="flex flex-row h-[75px] justify-between items-center">
             <h1 className="text-xl font-semibold text-[#323a46] leading-[75px]">Dashboard</h1>
-            <p className="text-[#ACB4C8] font-normal text-[14px]">Dashboard</p>
+            <p className="hidden md:flex text-[#ACB4C8] font-normal text-[14px]">Dashboard</p>
         </div>
         <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-4 p-6 bg-white rounded-xs">

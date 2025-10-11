@@ -24,21 +24,21 @@ const Navlink = () => {
       <li className="text-[14px] px-[15px] flex flex-row gap-1 items-center">
         <Link href="#" className="flex flex-row gap-1 items-center">
           <Image src="/calender.png" alt="calender" width={18} height={18} />
-          <span>2025/2026 Ganjil</span>
+          <span className="hidden lg:flex">2025/2026 Ganjil</span>
         </Link>
       </li>
 
       <li className="text-[14px] px-[15px] flex items-center">
         <Link href="#" className="flex flex-row gap-1 items-center">
           <Image src="/id.png" alt="bahasa" width={23.81} height={16} />
-          <span>id</span>
+          <span className="hidden md:flex">id</span>
         </Link>
       </li>
 
       <li className="text-[14px] px-[15px] flex items-center">
         <Link href="#" className="flex flex-row gap-1 items-center">
           <Image src="/lock.png" alt="prodi" width={15} height={15} />
-          <span>Mahasiswa (IF)</span>
+          <span className="hidden md:flex">Mahasiswa (IF)</span>
         </Link>
       </li>
 
@@ -58,8 +58,8 @@ const Navlink = () => {
             width={32}
             height={32}
           />
-          <span className="ml-1">MUHAMAD IKHSAN RIZQI YANUAR</span>
-          <Image src="/dropdown.png" alt="dropdown" width={10} height={10} />
+          <span className="hidden md:flex ml-1">MUHAMAD IKHSAN RIZQI YANUAR</span>
+          <Image src="/dropdown.png" className="hidden md:flex" alt="dropdown" width={10} height={10} />
         </button>
 
         {/* Dropdown menu dengan animasi */}
