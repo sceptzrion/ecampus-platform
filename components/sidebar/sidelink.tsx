@@ -4,83 +4,91 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function Sidelink() {
+export default function Sidelink({ collapsed }: { collapsed: boolean }) {
   const pathname = usePathname();
-
   const isDashboard = pathname === "/dashboard/dashboard-akademik";
 
+  const Section = ({ children, title }: { children: React.ReactNode; title: string }) => (
+    <>
+      {/* Judul section disembunyikan saat collapsed */}
+      <li
+        className={`py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#6e768e] ${
+          collapsed ? "hidden" : "block"
+        }`}
+      >
+        {title}
+      </li>
+      {children}
+    </>
+  );
+
   return (
-    <div className="fixed">
-      <ul className="flex flex-col text-[#7D849A]">
-        {/* MENU */}
-        <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
-          MENU
-        </li>
+    <ul className={`flex flex-col text-[#6e768e] ${collapsed ? "pt-0" : "pt-5"}`}>
+      <Section title="MENU">
         <NavItem
           href="/dashboard/dashboard-akademik"
           label="Dashboard"
           icon={isDashboard ? "/cubes.png" : "/dashboard-inactive.png"}
           active={isDashboard}
+          collapsed={collapsed}
         />
+      </Section>
 
-        {/* DATA DASAR */}
-        <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
-          DATA DASAR
-        </li>
+      <Section title="DATA DASAR">
         <NavItem
           href="/biodata-mahasiswa"
           label="Biodata Mahasiswa"
           icon="/biodata.png"
           active={pathname.startsWith("/biodata-mahasiswa")}
+          collapsed={collapsed}
         />
+      </Section>
 
-        {/* PRAPERKULIAHAN */}
-        <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
-          PRAPERKULIAHAN
-        </li>
+      <Section title="PRAPERKULIAHAN">
         <NavItem
           href="/registrasi/detail"
           label="Registrasi"
           icon="/biodata.png"
           active={pathname.startsWith("/registrasi/detail")}
+          collapsed={collapsed}
         />
         <NavItem
           href="/krs-mahasiswa"
           label="Rencana Studi"
           icon="/checklist.png"
           active={pathname.startsWith("/krs-mahasiswa")}
+          collapsed={collapsed}
         />
+      </Section>
 
-        {/* PERKULIAHAN */}
-        <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
-          PERKULIAHAN
-        </li>
+      <Section title="PERKULIAHAN">
         <NavItem
           href="/jadwal_perkuliahan"
           label="Jadwal Perkuliahan"
           icon="/checklist.png"
           active={pathname.startsWith("/jadwal_perkuliahan")}
+          collapsed={collapsed}
         />
         <NavItem
           href="/hasil-studi"
           label="Hasil Studi"
           icon="/hasil_checklist.png"
           active={pathname.startsWith("/hasil-studi")}
+          collapsed={collapsed}
         />
+      </Section>
 
-        {/* TUGAS AKHIR */}
-        <li className="py-2.5 px-5 text-[11px] font-semibold tracking-wider text-[#9A9FB0]">
-          TUGAS AKHIR
-        </li>
+      <Section title="TUGAS AKHIR">
         <NavItem
           href="/tugas-akhir-mahasiswa"
           label="Tugas Akhir"
           icon="/tukhir.png"
           active={pathname.startsWith("/tugas-akhir-mahasiswa")}
+          collapsed={collapsed}
           withBg
         />
-      </ul>
-    </div>
+      </Section>
+    </ul>
   );
 }
 
@@ -90,36 +98,41 @@ function NavItem({
   icon,
   active,
   withBg,
+  collapsed,
 }: {
   href: string;
   label: string;
   icon: string;
   active: boolean;
   withBg?: boolean;
+  collapsed: boolean;
 }) {
   return (
-    <li className="py-3 px-5 text-[15px]">
+    <li className={`px-3 text-[15px] ${collapsed ? "py-0" : "py-1"}`}>
       <Link
         href={href}
         aria-current={active ? "page" : undefined}
-        className={`flex flex-row items-center transition-colors ${
+        className={`group flex items-center rounded-sm ${collapsed ? "py-[15px] justify-center" : "pl-2.5 pr-2 py-2"} transition-colors ${
           active ? "text-[#15B2C5] font-medium" : "hover:text-[#15B2C5]"
         }`}
+        title={collapsed ? label : undefined} // tooltip saat collapsed
       >
         {withBg ? (
-          <span className="ml-[3px] mr-2.5 inline-flex items-center justify-center w-5 h-5 rounded bg-[#6E768E]">
+          <span className={`inline-flex h-5 w-5 items-center justify-center rounded bg-[#6E768E] ${collapsed ? "mr-0" : "mr-3"}`}>
             <Image src={icon} alt={label} width={13} height={13} />
           </span>
         ) : (
-          <Image
-            className="ml-[3px] mr-2.5"
-            src={icon}
-            alt={label}
-            width={18}
-            height={18}
-          />
+          <Image className={`${collapsed ? "mr-0" : "mr-3"}`} src={icon} alt={label} {...(collapsed ? { width: 21, height: 21 } : { width: 18, height: 18 })} />
         )}
-        <span>{label}</span>
+
+        {/* Teks disembunyikan saat collapsed */}
+        <span
+          className={`whitespace-nowrap transition-opacity duration-150 ${
+            collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+          }`}
+        >
+          {label}
+        </span>
       </Link>
     </li>
   );

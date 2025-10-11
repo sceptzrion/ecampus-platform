@@ -1,35 +1,36 @@
 "use client";
 
+import { useState } from "react";
 import Navbar from "@/components/navbar/navbar";
 import Sidebar from "@/components/sidebar/sidebar";
 import Footer from "@/components/footer/footermain";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
+  const [collapsed, setCollapsed] = useState(false); // false = 240px, true = 72px
+
   return (
-    <div className="min-h-screen max-w-screen overflow-x-hidden">
-      <div className="flex flex-row w-full">
-        {/* Navbar di atas */}
-        <Navbar />
+    <div className="min-h-svh bg-[#F1F2F4]">
+      {/* Navbar fixed di atas, tinggi 70px */}
+      <Navbar
+        collapsed={collapsed}
+        onToggleSidebar={() => setCollapsed((v) => !v)}
+      />
 
-        <div className="flex max-w-screen w-full">
-        {/* Sidebar di kiri */}
-        <div className="">
-        <Sidebar />
+      {/* Body area: padding top = tinggi navbar */}
+      <div className="pt-[70px]">
+        {/* Sidebar fixed kiri; konten pakai margin-left yang berubah */}
+        <Sidebar collapsed={collapsed} />
+
+        <div
+          className={`transition-[margin] duration-200 ease-out px-7`}
+          // ml 240 saat expanded, 72 saat collapsed
+          style={{ marginLeft: collapsed ? 72 : 240 }}
+        >
+          <main className="min-h-[calc(100svh-70px)] overflow-x-auto">
+            {children}
+          </main>
+          <Footer />
         </div>
-
-        {/* Area kanan */}
-        <div className="flex flex-col max-w-screen w-[calc(100%-240px)] bg-[#F1F2F4] mt-[70px] px-7">
-            {/* Konten */}
-            <main className="overflow-x-auto">{children}</main>
-
-            {/* Footer (ikut margin kiri/atas) */}
-            <Footer />
-
-          {/* Konten + footer, dengan margin kiri/atas */}
-        </div>
-
-        </div>
-
       </div>
     </div>
   );

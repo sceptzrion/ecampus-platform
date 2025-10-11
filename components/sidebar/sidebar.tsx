@@ -1,12 +1,20 @@
-import Image from "next/image"
-import Sidelink from "@/components/sidebar/sidelink"
+"use client";
 
-const Sidebar = () => {
+import Sidelink from "@/components/sidebar/sidelink";
+
+export default function Sidebar({ collapsed }: { collapsed: boolean }) {
   return (
-    <div className="w-[240px] h-auto min-h-screen mt-[70px] py-5 bg-white">
-        <Sidelink />
-    </div>
-  )
+    <aside
+      className={[
+        "fixed left-0 top-[70px] z-[1500] h-[calc(100svh-70px)] bg-white border-r border-[#e9ecef]",
+        "transition-[width] duration-200 ease-out overflow-hidden",
+        collapsed ? "w-[70px]" : "w-[240px]",
+      ].join(" ")}
+    >
+      {/* scroll bila tinggi melebihi viewport */}
+      <div className="h-full overflow-y-auto">
+        <Sidelink collapsed={collapsed} />
+      </div>
+    </aside>
+  );
 }
-
-export default Sidebar
