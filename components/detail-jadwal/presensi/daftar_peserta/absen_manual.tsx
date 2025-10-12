@@ -345,7 +345,7 @@ export default function AbsenManual({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* ============ KIRI: Kamera / Foto ============ */}
           <div className="place-self-center w-full rounded-md p-4 bg-[#f3f6f8]">
-            <div className="relative aspect-video w-full rounded-md bg-black overflow-hidden">
+            <div className="relative aspect-square lg:aspect-video w-full rounded-md bg-black overflow-hidden">
               {/* Switch kamera (pojok kanan atas) */}
               <button
                 type="button"
@@ -464,7 +464,7 @@ export default function AbsenManual({
               </div>
 
               <div className="mt-2 bg-[#eef2f5] border border-gray-200 rounded-md p-4">
-                <div className="aspect-[3/1] w-full overflow-hidden rounded-md bg-white border border-gray-200">
+                <div className="aspect-square lg:aspect-[3/1] w-full overflow-hidden rounded-md bg-white border border-gray-200">
                   {loc ? (
                     <iframe
                       title="live-map"
