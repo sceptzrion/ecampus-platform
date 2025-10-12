@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import Navbar from "@/components/navbar/navbar";
 import Sidebar from "@/components/sidebar/sidebar";
 import Footer from "@/components/footer/footermain";
@@ -9,6 +10,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [collapsed, setCollapsed] = useState(false); // desktop: false=240px, true=72px
   const [mobileOpen, setMobileOpen] = useState(false); // mobile: default hidden
 
+  const pathname = usePathname();
+  const search = useSearchParams();
+
+  // Tutup sidebar mobile tiap kali URL berubah (path atau query)
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname, search?.toString()]);
+  
   const toggleSidebar = () => {
     if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
       setCollapsed((v) => !v);      // desktop behavior
