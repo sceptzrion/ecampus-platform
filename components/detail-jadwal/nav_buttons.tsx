@@ -18,7 +18,7 @@ const NavButtons = ({ active, onChange }: NavButtonsProps) => {
 
   return (
     <div className="flex w-full h-full p-6 bg-white text-sm font-semibold">
-      <ul className="grid grid-cols-5 w-full gap-2.5">
+      <ul className="grid grid-rows-5 lg:grid-rows-1 lg:grid-cols-5 w-full gap-2.5">
         {tabs.map((tab) => (
           <li key={tab.key} className="flex items-center w-full h-auto">
             <button

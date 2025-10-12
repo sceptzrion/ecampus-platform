@@ -129,9 +129,9 @@ export default function PresensiTable({
     <table className="w-full border-collapse">
       <thead className="bg-[#F3F7F9]">
         <tr className="text-left text-sm text-[#343A40] font-bold border-b-2 border-[#DEE2E6]">
-          <th className="sticky left-0 bg-[#F3F7F9] px-4 py-3">No</th>
-          <th className="sticky left-12.5 bg-[#F3F7F9] px-4 py-3">Nama</th>
-          <th className="sticky left-46.5 bg-[#F3F7F9] px-4 py-3">Jumlah Kehadiran</th>
+          <th className="lg:sticky lg:left-0 bg-[#F3F7F9] px-4 py-3">No</th>
+          <th className="lg:sticky lg:left-12.5 bg-[#F3F7F9] px-4 py-3">Nama</th>
+          <th className="lg:sticky lg:left-46.5 bg-[#F3F7F9] px-4 py-3">Jumlah Kehadiran</th>
           {DATES.map((d, idx) => (
             <th key={idx} className="px-4 py-3 whitespace-nowrap">
               <div className="flex flex-col gap-1 items-center">
@@ -156,16 +156,16 @@ export default function PresensiTable({
           const isSelf = s.nim === currentUserNim;
           return (
             <tr key={s.id} className="border-b-2 border-[#EAECEF] hover:bg-[#F8FAFB] transition-colors">
-              <td className="sticky left-0 bg-white px-4 py-4 text-sm text-[#6c757d]">{rowIdx + 1}</td>
+              <td className="lg:sticky lg:left-0 bg-white px-4 py-4 text-sm text-[#6c757d]">{rowIdx + 1}</td>
 
-              <td className="sticky left-12.5 bg-white px-4 py-3">
+              <td className="lg:sticky lg:left-12.5 bg-white px-4 py-3">
                 <div className="text-[15px] font-bold text-[#343A40]">{s.name}</div>
                 <span className="inline-block text-[9px] font-semibold tracking-wide text-white bg-[#6658DD] px-1 py-0.25 rounded-sm">
                   {s.nim}
                 </span>
               </td>
 
-              <td className="sticky left-46.5 bg-white px-4 py-4 text-sm text-[#6c757d]">{s.hadirCount}</td>
+              <td className="lg:sticky lg:left-46.5 bg-white px-4 py-4 text-sm text-[#6c757d]">{s.hadirCount}</td>
 
               {DATES.map((_, colIdx) => (
                 <td key={colIdx} className="px-4 py-4 align-middle">
@@ -185,9 +185,9 @@ export default function PresensiTable({
 
       <tfoot>
         <tr className="bg-[#F3F7F9] border-t-2 border-[#EAECEF]">
-          <td className="sticky left-0 bg-[#F3F7F9] px-4 py-3" />
-          <td className="sticky left-12.5 bg-[#F3F7F9] px-4 py-3 font-bold text-[#6c757d] text-sm">Topik</td>
-          <td className="sticky left-46.5 bg-[#F3F7F9] px-4 py-3" />
+          <td className="lg:sticky lg:left-0 bg-[#F3F7F9] px-4 py-3" />
+          <td className="lg:sticky lg:left-12.5 bg-[#F3F7F9] px-4 py-3 font-bold text-[#6c757d] text-sm">Topik</td>
+          <td className="lg:sticky lg:left-46.5 bg-[#F3F7F9] px-4 py-3" />
           {DATES.map((_, idx) => (
             <td key={idx} className="px-4 py-3 text-[#6c757d] text-center text-xs">
               {TOPICS[idx] ?? ""}

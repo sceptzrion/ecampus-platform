@@ -14,7 +14,7 @@ export default function DashboardAkademik() {
         <h1 className="text-xl font-semibold text-[#323a46] leading-[75px]">
           Jadwal Perkuliahan
         </h1>
-        <div className="flex flex-row gap-2.5 text-[14px] font-normal">
+        <div className="hidden md:flex flex-row gap-2.5 text-[14px] font-normal">
           <a href="/dashboard/dashboard-akademik" className="text-[#6c757d]">
             Dashboard
           </a>

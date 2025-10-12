@@ -33,7 +33,7 @@ const CardSection = ({ items }: { items: CardItem[] }) => (
 
 const CardBody = () => {
   return (
-    <div className="grid grid-cols-2 gap-6">
+    <div className="grid grid-rows-2 lg:grid-rows-1 lg:grid-cols-2 gap-6">
       <CardSection items={leftCard} />
       <CardSection items={rightCard} />
     </div>

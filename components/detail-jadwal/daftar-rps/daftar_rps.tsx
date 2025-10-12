@@ -97,22 +97,24 @@ export default function DaftarRps() {
           DAFTAR RPS
         </h3>
 
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="text-left text-sm text-[#343A40] font-bold bg-[#F3F7F9] border-b-2 border-[#DEE2E6]">
-              <th className="px-4 py-3 w-[120px]">Extra</th>
-              <th className="px-4 py-3">Dibuat Oleh</th>
-              <th className="px-4 py-3 w-[120px]">Publik?</th>
-              <th className="px-4 py-3 w-[120px]">Aksi</th>
-            </tr>
-          </thead>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse min-w-max">
+            <thead>
+              <tr className="text-left text-sm text-[#343A40] font-bold bg-[#F3F7F9] border-b-2 border-[#DEE2E6]">
+                <th className="px-4 py-3">Extra</th>
+                <th className="px-4 py-3">Dibuat Oleh</th>
+                <th className="px-4 py-3">Publik?</th>
+                <th className="px-4 py-3">Aksi</th>
+              </tr>
+            </thead>
 
-          <tbody>
-            {ROWS.map((row) => (
-              <RpsTableRow key={row.id} row={row} />
-            ))}
-          </tbody>
-        </table>
+            <tbody>
+              {ROWS.map((row) => (
+                <RpsTableRow key={row.id} row={row} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </>
   );
