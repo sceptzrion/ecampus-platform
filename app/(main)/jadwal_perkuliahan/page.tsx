@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Jadwal Perkuliahan",
 };
 
-export default function DashboardAkademik() {
+export default function JadwalPerkuliahan() {
   return (
     <>
       {/* Header Section */}
