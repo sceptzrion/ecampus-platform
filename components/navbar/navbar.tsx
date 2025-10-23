@@ -3,21 +3,24 @@
 import Image from "next/image";
 import Navlink from "@/components/navbar/navlink";
 
+type User = { id: number; name: string; email: string; role: string };
+
 export default function Navbar({
   collapsed,
   mobileOpen,
   onToggleSidebar,
+  user,
 }: {
   collapsed: boolean;
   mobileOpen: boolean;
   onToggleSidebar: () => void;
+  user: User; // <<-- tambah
 }) {
   return (
     <header className="fixed inset-x-0 top-0 z-[2000] h-[70px] bg-white border-b border-[#e9ecef]">
       <div className="flex h-full items-center justify-between pr-3">
-        {/* Kiri: rail + burger */}
+        {/* kiri */}
         <div className="flex items-center ml-3.5 lg:ml-0 gap-9 lg:gap-2">
-          {/* RAIL LOGO — hanya di desktop (lg+), selalu center & lebarnya mengikuti sidebar */}
           <div
             className="relative hidden lg:block transition-[width] duration-200 ease-out"
             style={{ width: collapsed ? 72 : 240 }}
@@ -26,23 +29,17 @@ export default function Navbar({
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="flex items-center gap-2 text-[14px] text-[#7669E0]">
                 <Image src="/logo_usk.png" alt="UNSIKA" width={28.73} height={35} priority />
-                <span
-                  className={`font-medium tracking-wide transition-opacity duration-150 ${
-                    collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
-                  }`}
-                >
+                <span className={`font-medium tracking-wide transition-opacity duration-150 ${collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
                   SISKA
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Di mobile, tampilkan logo kecil biasa (tanpa teks) */}
           <div className="lg:hidden flex items-center">
             <Image src="/logo_usk.png" alt="UNSIKA" width={28.73} height={35} priority />
           </div>
 
-          {/* Burger */}
           <button
             type="button"
             aria-label="Toggle sidebar"
@@ -55,8 +52,8 @@ export default function Navbar({
           </button>
         </div>
 
-        {/* Kanan */}
-        <Navlink />
+        {/* kanan */}
+        <Navlink user={user} />
       </div>
     </header>
   );

@@ -3,10 +3,16 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-const Navlink = () => {
+type Props = {
+  user: { name: string; email: string; role: string }; // role: "staff" | ...
+};
+
+const Navlink = ({ user }: Props) => {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLLIElement>(null);
+  const router = useRouter();
 
   // Tutup dropdown kalau klik di luar area dropdown
   useEffect(() => {
@@ -18,6 +24,21 @@ const Navlink = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleReload = () => {
+    // refresh ringan
+    router.refresh();
+    setOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("authUser");
+    setOpen(false);
+    router.push("/auth/login");
+  };
+
+  const roleLabel =
+    user.role === "staff" ? "Dosen" : user.role === "student" ? "Mahasiswa" : "Pengguna";
 
   return (
     <ul className="flex text-[#6C757D] text-[14px] leading-1.5 font-normal">
@@ -36,10 +57,10 @@ const Navlink = () => {
       </li>
 
       <li className="text-[14px] px-[15px] flex items-center">
-        <Link href="#" className="flex flex-row gap-1 items-center">
-          <Image src="/lock.png" alt="prodi" width={15} height={15} />
-          <span className="hidden md:flex">Dosen</span>
-        </Link>
+        <span className="flex flex-row gap-1 items-center">
+          <Image src="/lock.png" alt="role" width={15} height={15} />
+          <span className="hidden md:flex">{roleLabel}</span>
+        </span>
       </li>
 
       {/* Dropdown User */}
@@ -53,16 +74,22 @@ const Navlink = () => {
         >
           <Image
             className="rounded-full"
-            src="/foto_dosen.jpg"
+            src="/foto_dosen.jpg" // optional: ganti ke avatar dinamis kalau ada
             alt="foto"
             width={32}
             height={32}
           />
-          <span className="hidden md:flex ml-1">Gudang Gunawan</span>
-          <Image src="/dropdown.png" className="hidden md:flex" alt="dropdown" width={10} height={10} />
+          <span className="hidden md:flex ml-1">{user.name}</span>
+          <Image
+            src="/dropdown.png"
+            className="hidden md:flex"
+            alt="dropdown"
+            width={10}
+            height={10}
+          />
         </button>
 
-        {/* Dropdown menu dengan animasi */}
+        {/* Dropdown menu */}
         <div
           className={`
             absolute right-0 top-full mt-5 w-42.5 p-1.25 bg-white border border-gray-200 
@@ -70,29 +97,31 @@ const Navlink = () => {
             ${open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}
           `}
         >
-          <p
-            className="block px-5 py-3.75 text-xs font-bold text-[#343A40]"
-          >
-            Selamat datang !
+          <p className="block px-5 py-3.75 text-xs font-bold text-[#343A40]">
+            Selamat datang!
           </p>
-          <Link
-            href="/#"
-            className="block px-4 py-2 text-sm text-[#6c757d]"
+
+          <button
+            type="button"
+            onClick={handleReload}
+            className="w-full text-left px-4 py-2 text-sm text-[#6c757d] hover:bg-gray-50"
           >
             <div className="flex flex-row gap-1.25">
-                <Image src="/loop.png" alt="settings" width={20} height={15} />
-                <p>Muat ulang</p>
+              <Image src="/loop.png" alt="reload" width={20} height={15} />
+              <p>Muat ulang</p>
             </div>
-          </Link>
-          <Link
-            href="/auth/login"
-            className="block px-4 py-2 text-sm text-[#6c757d]"
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full text-left px-4 py-2 text-sm text-[#6c757d] hover:bg-gray-50"
           >
             <div className="flex flex-row gap-1.25">
-                <Image src="/logout.png" alt="settings" width={18} height={15} />
-                <p>Keluar</p>
+              <Image src="/logout.png" alt="logout" width={18} height={15} />
+              <p>Keluar</p>
             </div>
-          </Link>
+          </button>
         </div>
       </li>
     </ul>

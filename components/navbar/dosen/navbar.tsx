@@ -3,21 +3,25 @@
 import Image from "next/image";
 import Navlink from "@/components/navbar/dosen/navlink";
 
+type User = { id: number; name: string; email: string; role: string };
+
 export default function Navbar({
   collapsed,
   mobileOpen,
   onToggleSidebar,
+  user,
 }: {
   collapsed: boolean;
   mobileOpen: boolean;
   onToggleSidebar: () => void;
+  user: User; // <<< baru
 }) {
   return (
     <header className="fixed inset-x-0 top-0 z-[2000] h-[70px] bg-white border-b border-[#e9ecef]">
       <div className="flex h-full items-center justify-between pr-3">
         {/* Kiri: rail + burger */}
         <div className="flex items-center ml-3.5 lg:ml-0 gap-9 lg:gap-2">
-          {/* RAIL LOGO — hanya di desktop (lg+), selalu center & lebarnya mengikuti sidebar */}
+          {/* RAIL LOGO — desktop */}
           <div
             className="relative hidden lg:block transition-[width] duration-200 ease-out"
             style={{ width: collapsed ? 72 : 240 }}
@@ -37,7 +41,7 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* Di mobile, tampilkan logo kecil biasa (tanpa teks) */}
+          {/* Mobile logo */}
           <div className="lg:hidden flex items-center">
             <Image src="/logo_usk.png" alt="UNSIKA" width={28.73} height={35} priority />
           </div>
@@ -56,7 +60,7 @@ export default function Navbar({
         </div>
 
         {/* Kanan */}
-        <Navlink />
+        <Navlink user={user} />
       </div>
     </header>
   );
