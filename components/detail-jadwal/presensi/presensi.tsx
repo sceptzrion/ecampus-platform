@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import type { Session, Student } from "@/components/detail-jadwal/presensi/presensi_table";
 import AbsenManual from "@/components/detail-jadwal/presensi/daftar_peserta/absen_manual";
 import Peserta from "@/components/detail-jadwal/presensi/daftar_peserta/peserta";
 
@@ -9,6 +10,28 @@ type SelectedStudent = { id: string; name: string; nim: string } | null;
 export default function PresensiPage() {
   const [view, setView] = useState<"list" | "absen">("list");
   const [selected, setSelected] = useState<SelectedStudent>(null);
+
+  const [sessions, setSessions] = useState<Session[] | null>(null);
+  const [students, setStudents] = useState<Student[] | null>(null);
+
+  const classId = 101; // sesuaikan
+  const currentUserNim = "2210631170131"; // ambil dari session login kamu
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/classes/${classId}/attendance-matrix`, { cache: "no-store" });
+        const data = await res.json();
+        if (!alive) return;
+        setSessions(data.sessions);
+        setStudents(data.students);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => { alive = false; };
+  }, [classId]);
 
   const openManual = (s: { id: string; name: string; nim: string }) => {
     setSelected(s);
@@ -21,9 +44,13 @@ export default function PresensiPage() {
   };
 
   const submitSuccess = () => {
-    // TODO: kalau mau, refresh data peserta di sini
     setView("list");
     setSelected(null);
+    // refresh matrix setelah submit
+    fetch(`/api/classes/${classId}/attendance-matrix`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { setSessions(d.sessions); setStudents(d.students); })
+      .catch(console.error);
   };
 
   return (
@@ -33,7 +60,16 @@ export default function PresensiPage() {
       </div>
 
       {view === "list" ? (
-        <Peserta onManual={openManual} />
+        !sessions || !students ? (
+          <div className="p-6 bg-white rounded-sm text-gray-500">Memuat…</div>
+        ) : (
+          <Peserta
+            sessions={sessions}
+            students={students}
+            currentUserNim={currentUserNim}
+            onManual={openManual}
+          />
+        )
       ) : (
         <AbsenManual student={selected} onBack={backToList} onSubmitSuccess={submitSuccess} />
       )}

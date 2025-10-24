@@ -1,6 +1,6 @@
 // app/api/auth/login/route.ts
 import { NextResponse } from "next/server";
-import { getDB } from "@/lib/db";
+import { getPool } from "@/lib/db";
 import mysql2 from "mysql2/promise";
 
 type DBUser = {
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const db = getDB();
+    const db = getPool();
     const [rows] = await db.execute<mysql2.RowDataPacket[]>(
       "SELECT id, name, email, password, role, is_active FROM users WHERE email = ? LIMIT 1",
       [email]
