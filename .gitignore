@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+#assets
+/public/attendance/
+
 # next.js
 /.next/
 /out/
