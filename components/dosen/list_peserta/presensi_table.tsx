@@ -2,195 +2,247 @@
 
 import React from "react";
 import Image from "next/image";
+import { nowWIB } from "@/lib/clock";
 
-/* =========================
-   Dummy data (statis dulu)
-   ========================= */
-type Status = "hadir" | "tidak" | "manual" | "pending" | "not_started";
+/* ===== Types yg sama dgn mahasiswa ===== */
+export type AttendanceDB =
+  | { status: "present" }
+  | { status: "present_manual" }
+  | { status: "absent"; reason?: "permit" | "sick" | "other" | "none" };
 
-type Student = {
+export type Session = {
+  id: string;
+  dateLabel: string;
+  startAt?: string;
+  endAt?: string;
+  topic?: string | null;
+};
+
+export type Student = {
   id: string;
   name: string;
   nim: string;
-  hadirCount: number;
-  statuses: Status[];
+  attendance?: Record<string, AttendanceDB | undefined>;
 };
 
-const DATES = ["18 Agustus 2025", "1 September 2025", "15 September 2025", "29 September 2025"];
+export type DosenPresensiTableProps = {
+  sessions: Session[];
+  students: Student[];
+  onReview?: (s: { id: string; name: string; nim: string }, sessionId: number) => void;
+};
 
-const STUDENTS: Student[] = [
-  { id: "1", name: "ALIF FADILLAH UMMAR", nim: "2210631170004", hadirCount: 3, statuses: ["hadir","hadir","hadir","manual"] },
-  { id: "2", name: "RISMA AULIYA SALSABILLA", nim: "2210631170100", hadirCount: 3, statuses: ["hadir","hadir","hadir","manual"] },
-  { id: "3", name: "SITI ZULHI NIRMA SAIDAH", nim: "2210631170103", hadirCount: 3, statuses: ["hadir","hadir","hadir","manual"] },
-  { id: "4", name: "SOPIAN SYAURI", nim: "2210631170104", hadirCount: 3, statuses: ["hadir","hadir","hadir","manual"] },
-  { id: "5", name: "ALUSTINA SUCI MANAH", nim: "2210631170006", hadirCount: 2, statuses: ["hadir","hadir","tidak","pending"] },
-  { id: "6", name: "MUHAMAD IKHSAN RIZQI YANUAR", nim: "2210631170131", hadirCount: 3, statuses: ["hadir","hadir","hadir","manual"] },
-  { id: "7", name: "ARI RIZWAN", nim: "2210631170008", hadirCount: 3, statuses: ["hadir","hadir","hadir","pending"] },
-  { id: "8", name: "REIZA ALITHIAN SYACH", nim: "2210631170098", hadirCount: 3, statuses: ["hadir","hadir","hadir","manual"] },
-  { id: "9", name: "AFRIDHO IKHSAN", nim: "2210631170002", hadirCount: 3, statuses: ["hadir","hadir","hadir","manual"] },
-  { id: "10", name: "RIDHAKA GINA AMALIA", nim: "2210631170099", hadirCount: 3, statuses: ["hadir","hadir","hadir","manual"] },
-  { id: "11", name: "IKHWAN PRATAMA HIDAYAT", nim: "2210631170126", hadirCount: 3, statuses: ["hadir","hadir","hadir","manual"] },
-  { id: "12", name: "ANANTA ZIAUROHMAN AZ ZAKI", nim: "2210631170007", hadirCount: 2, statuses: ["hadir","tidak","hadir","pending"] },
-  { id: "13", name: "MUHAMAD EKI BARKATAN SARI", nim: "2210631170130", hadirCount: 2, statuses: ["hadir","tidak","hadir","manual"] },
-  { id: "14", name: "YESAYA ADHELYASA VAREEN TETUKO", nim: "2210631170107", hadirCount: 2, statuses: ["hadir","tidak","hadir","manual"] },
-  { id: "15", name: "ALMA ALIFYA ZAFIRA", nim: "2210631170005", hadirCount: 3, statuses: ["hadir","hadir","hadir","manual"] },
-  { id: "16", name: "MAHESWARA ABHISTA HAMDAN HAFIZ", nim: "2210631170128", hadirCount: 3, statuses: ["hadir","hadir","hadir","pending"] },
-  { id: "17", name: "ADITYA DAFFA SYAHPUTRA", nim: "2210631170001", hadirCount: 3, statuses: ["hadir","hadir","hadir","manual"] },
-  { id: "18", name: "TJOARGEN CHRISTOPER REDJA", nim: "2210631170106", hadirCount: 2, statuses: ["hadir","tidak","hadir","manual"] },
-  { id: "19", name: "GUDANG GUNAWAN", nim: "2210631170124", hadirCount: 2, statuses: ["tidak","hadir","hadir","manual"] },
-];
+/* ===== Utils waktu & label ===== */
+function isBetween(now: Date, start?: string, end?: string) {
+  if (!start || !end) return false;
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  const n = now.getTime();
+  return n >= s && n <= e;
+}
+function isBefore(now: Date, start?: string) {
+  if (!start) return false;
+  return now.getTime() < new Date(start).getTime();
+}
+function isAfter(now: Date, end?: string) {
+  if (!end) return false;
+  return now.getTime() > new Date(end).getTime();
+}
 
-const TOPICS = ["perkenalan capstone project", "Pemilihan topik project", "Perancangan Project", "Implementasi Project"];
+function reasonToIndo(reason?: string) {
+  switch (reason) {
+    case "permit": return "Izin";
+    case "sick":   return "Sakit";
+    case "other":  return "Alasan Lain";
+    case "none":   return "Tanpa Keterangan";
+    case "-":
+    default:       return "-";
+  }
+}
 
-/* Siapa user yang sedang login? */
-const CURRENT_USER_NIM = "2210631170131"; // ganti sesuai session/login kamu
+/* ===== Resolver status UI (tanpa isSelf) ===== */
+type UiStatus =
+  | { type: "present" }
+  | { type: "present_manual" }
+  | { type: "absent"; reason: string }
+  | { type: "pending" }        // sesi berjalan, belum presensi
+  | { type: "not_started" };
 
-/* =========================
-   Badge & tombol status
-   ========================= */
-function StatusBadge({
-  value,
-  isSelf,
-  onManualClick,
+function resolveCellStatus(now: Date, sess: Session, db?: AttendanceDB): UiStatus {
+  if (db) {
+    if (db.status === "present") return { type: "present" };
+    if (db.status === "present_manual") return { type: "present_manual" };
+    if (db.status === "absent") return { type: "absent", reason: db.reason ?? "-" };
+  }
+  if (isBefore(now, sess.startAt)) return { type: "not_started" };
+  if (isBetween(now, sess.startAt, sess.endAt)) return { type: "pending" };
+  if (isAfter(now, sess.endAt)) return { type: "absent", reason: "-" };
+  return { type: "not_started" };
+}
+
+/* ===== Badge untuk dosen ===== */
+function StatusBadgeDosen({
+  ui,
+  onReview,
 }: {
-  value: Status;
-  isSelf?: boolean;
-  onManualClick?: () => void;
+  ui: UiStatus;
+  onReview?: () => void;
 }) {
-  if (value === "hadir")
-    return (
-      <span className="flex items-center place-self-center gap-0.5 text-[10.5px] w-fit px-1 py-0.75 rounded-sm bg-[#1ABC9C] text-white font-bold">
-        <Image src="/check_absen.png" alt="Hadir" width={10.5} height={10.5} />
-        Hadir
-      </span>
-    );
-
-  if (value === "tidak")
-    return (
-      <div className="flex flex-col items-center gap-0.75">
-        <span className="flex items-center gap-0.5 text-[10.5px] w-fit px-1 py-0.75 rounded-sm bg-[#f1556c] text-white font-bold">
-          <Image src="/not_absen.png" alt="Tidak Hadir" width={10.5} height={10.5} />
-          Tidak Hadir
+  switch (ui.type) {
+    case "present":
+      return (
+        <span className="flex items-center place-self-center gap-0.5 text-[10.5px] w-fit px-1 py-0.75 rounded-sm bg-[#1ABC9C] text-white font-bold">
+          <Image src="/check_absen.png" alt="Hadir" width={10.5} height={10.5} />
+          Hadir
         </span>
-        <i className="text-xs text-[#6c757d]">-</i>
-      </div>
-    );
-
-  if (value === "manual") {
-    if (isSelf) {
-      // HANYA untuk user sendiri → bisa klik, jadi "Ambil Presensi"
+      );
+    case "present_manual":
+      // hijau tua + KLIK untuk buka review
       return (
         <button
           type="button"
-          className="flex items-center place-self-center gap-0.5 text-[10.5px] w-fit px-1 py-0.75 rounded-sm bg-[#1ABC9C] text-white font-bold hover:brightness-95"
-          onClick={onManualClick}
+          onClick={onReview}
+          className="flex items-center place-self-center gap-0.75 text-[10.5px] w-fit px-1.25 py-1 rounded-sm bg-[#00aa88] text-white font-bold hover:brightness-95"
+          title="Lihat detail presensi manual"
         >
-          <Image src="/check_absen.png" alt="Hadir" width={10.5} height={10.5} />
-          Hadir (Presensi Manual)
+          <Image src="/check_absen.png" alt="Hadir Manual" width={10.5} height={10.5} />
+          Hadir (Manual)
         </button>
       );
-    }
-    // Orang lain → non klik, tanpa ikon
-    return (
-      <span className="flex items-center place-self-center text-[10.5px] w-fit px-1.5 py-1 rounded-sm bg-[#BBBBBB] text-white font-bold">
-        Belum Presensi
-      </span>
-    );
+    case "pending":
+      return (
+        <span className="flex items-center place-self-center text-[10.5px] w-fit px-1.5 py-1 rounded-sm bg-[#BBBBBB] text-white font-bold">
+          Belum Presensi
+        </span>
+      );
+    case "absent":
+      return (
+        <div className="flex flex-col items-center gap-0.75">
+          <span className="flex items-center gap-0.5 text-[10.5px] w-fit px-1 py-0.75 rounded-sm bg-[#f1556c] text-white font-bold">
+            <Image src="/not_absen.png" alt="Tidak Hadir" width={10.5} height={10.5} />
+            Tidak Hadir
+          </span>
+          <i className="text-xs text-[#6c757d]">{reasonToIndo(ui.reason)}</i>
+        </div>
+      );
+    case "not_started":
+    default:
+      return (
+        <div className="flex justify-center">
+          <span
+            title="Pertemuan belum dimulai"
+            className="inline-flex items-center justify-center py-0.75 px-1 rounded bg-[#f1556c]"
+          >
+            <Image src="/caution.png" alt="Belum dimulai" width={12} height={12} />
+          </span>
+        </div>
+      );
   }
-
-  if (value === "pending")
-    return (
-      <span className="flex items-center place-self-center gap-0.5 text-[10.5px] w-fit px-1 py-0.75 rounded-sm bg-[#1ABC9C] text-white font-bold hover:brightness-95 cursor-context-menu">
-        <Image src="/check_absen.png" alt="Hadir" width={10.5} height={10.5} />
-        Hadir (Presensi Manual)
-      </span>
-    );
-
-  return (
-    <div className="flex justify-center">
-      <span title="Pertemuan belum dimulai" className="inline-flex items-center justify-center py-0.75 px-1 rounded bg-[#f1556c]">
-        <Image src="/caution.png" alt="Belum dimulai" width={12} height={12} />
-      </span>
-    </div>
-  );
 }
 
-/* =========================
-   Table Component
-   ========================= */
-export default function PresensiTable({
-  onManual,
-  currentUserNim = CURRENT_USER_NIM, // bisa override via props kalau perlu
-}: {
-  onManual?: (s: { id: string; name: string; nim: string }) => void;
-  currentUserNim?: string;
-}) {
+/* ===== Tabel Dosen ===== */
+export default function DosenPresensiTable({
+  sessions,
+  students,
+  onReview,
+}: DosenPresensiTableProps) {
+  const now = nowWIB();
+
   return (
     <table className="w-full border-collapse">
       <thead className="bg-[#F3F7F9]">
         <tr className="text-left text-sm text-[#343A40] font-bold border-b-2 border-[#DEE2E6]">
           <th className="lg:sticky lg:left-0 bg-[#F3F7F9] px-4 py-3">No</th>
           <th className="lg:sticky lg:left-12.5 bg-[#F3F7F9] px-4 py-3">Nama</th>
-          <th className="lg:sticky lg:left-46.5 bg-[#F3F7F9] px-4 py-3">Jumlah Kehadiran</th>
-          {DATES.map((d, idx) => (
-            <th key={idx} className="px-4 py-3 whitespace-nowrap">
-              <div className="flex flex-col gap-1 items-center">
-                <div className="text-center text-[15px] font-bold">{d}</div>
-                <div className="flex flex-col items-center gap-2">
-                  <button className="flex items-center gap-1 text-[10.5px] px-1 py-0.5 rounded-md bg-[#6658DD] text-white hover:brightness-95">
-                    <Image src="/edit.png" alt="Edit" width={11.5} height={11.5} />
-                    Edit
-                  </button>
-                  <span className="flex items-center text-[9px] px-1.25 py-0.25 rounded bg-[#43BFE5] text-white">
-                    Belum Diakhiri
-                  </span>
+          <th className="lg:sticky lg:left-43.25 bg-[#F3F7F9] px-4 py-3">Jumlah Kehadiran</th>
+
+          {sessions.map((s) => {
+            const isOpen = isBetween(now, s.startAt, s.endAt);
+            const alreadyOver = isAfter(now, s.endAt);
+            return (
+              <th key={s.id} className="px-4 py-3 whitespace-nowrap">
+                <div className="flex flex-col gap-1 items-center">
+                  <div className="text-center text-[15px] font-bold">{s.dateLabel}</div>
+                  <div className="flex flex-col items-center gap-2">
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-[10.5px] px-1 py-0.5 rounded-md bg-[#6658DD] text-white hover:brightness-95"
+                    >
+                      <Image src="/edit.png" alt="Edit" width={11.5} height={11.5} />
+                      Edit
+                    </button>
+                    <span
+                      className={`flex items-center text-[9px] px-1.25 py-0.25 rounded ${
+                        isOpen ? "bg-[#43BFE5]" : alreadyOver ? "bg-[#A7B3B9]" : "bg-[#43BFE5]"
+                      } text-white`}
+                    >
+                      {alreadyOver ? "Sudah Diakhiri" : "Belum Diakhiri"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </th>
-          ))}
+              </th>
+            );
+          })}
         </tr>
       </thead>
 
       <tbody>
-        {STUDENTS.map((s, rowIdx) => {
-          const isSelf = s.nim === currentUserNim;
+        {students.map((stu, idx) => {
+          const hadirCount = sessions.reduce((acc, sess) => {
+            const ui = resolveCellStatus(now, sess, stu.attendance?.[sess.id]);
+            return acc + (ui.type === "present" || ui.type === "present_manual" ? 1 : 0);
+          }, 0);
+
           return (
-            <tr key={s.id} className="border-b-2 border-[#EAECEF] hover:bg-[#F8FAFB] transition-colors">
-              <td className="lg:sticky lg:left-0 bg-white px-4 py-4 text-sm text-[#6c757d]">{rowIdx + 1}</td>
+            <tr
+              key={stu.id}
+              className="border-b-2 border-[#EAECEF] hover:bg-[#F8FAFB] transition-colors"
+            >
+              <td className="lg:sticky lg:left-0 bg-white px-4 py-4 text-sm text-[#6c757d]">
+                {idx + 1}
+              </td>
 
               <td className="lg:sticky lg:left-12.5 bg-white px-4 py-3">
-                <div className="text-[15px] font-bold text-[#343A40]">{s.name}</div>
+                <div className="text-[15px] uppercase font-bold text-[#343A40]">{stu.name}</div>
                 <span className="inline-block text-[9px] font-semibold tracking-wide text-white bg-[#6658DD] px-1 py-0.25 rounded-sm">
-                  {s.nim}
+                  {stu.nim}
                 </span>
               </td>
 
-              <td className="lg:sticky lg:left-46.5 bg-white px-4 py-4 text-sm text-[#6c757d]">{s.hadirCount}</td>
+              <td className="lg:sticky lg:left-43.25 bg-white px-4 py-4 text-sm text-[#6c757d]">
+                {hadirCount}
+              </td>
 
-              {DATES.map((_, colIdx) => (
-                <td key={colIdx} className="px-4 py-4 align-middle">
-                  <StatusBadge
-                    value={s.statuses[colIdx]}
-                    isSelf={isSelf}
-                    onManualClick={
-                      isSelf ? () => onManual?.({ id: s.id, name: s.name, nim: s.nim }) : undefined
-                    }
-                  />
-                </td>
-              ))}
+              {sessions.map((sess) => {
+                const ui = resolveCellStatus(now, sess, stu.attendance?.[sess.id]);
+                return (
+                  <td key={sess.id} className="px-4 py-4 align-middle">
+                    <StatusBadgeDosen
+                      ui={ui}
+                      onReview={
+                        ui.type === "present_manual" && onReview
+                          ? () => onReview({ id: stu.id, name: stu.name, nim: stu.nim }, Number(sess.id))
+                          : undefined
+                      }
+                    />
+                  </td>
+                );
+              })}
             </tr>
           );
         })}
       </tbody>
 
+      {/* Footer topik (opsional) */}
       <tfoot>
         <tr className="bg-[#F3F7F9] border-t-2 border-[#EAECEF]">
           <td className="lg:sticky lg:left-0 bg-[#F3F7F9] px-4 py-3" />
-          <td className="lg:sticky lg:left-12.5 bg-[#F3F7F9] px-4 py-3 font-bold text-[#6c757d] text-sm">Topik</td>
-          <td className="lg:sticky lg:left-46.5 bg-[#F3F7F9] px-4 py-3" />
-          {DATES.map((_, idx) => (
-            <td key={idx} className="px-4 py-3 text-[#6c757d] text-center text-xs">
-              {TOPICS[idx] ?? ""}
+          <td className="lg:sticky lg:left-12.5 bg-[#F3F7F9] px-4 py-3 font-bold text-[#6c757d] text-sm">
+            Topik
+          </td>
+          <td className="lg:sticky lg:left-43.25 bg-[#F3F7F9] px-4 py-3" />
+          {sessions.map((s) => (
+            <td key={s.id} className="px-4 py-3 text-[#6c757d] text-center text-xs">
+              {s.topic ?? ""}
             </td>
           ))}
         </tr>

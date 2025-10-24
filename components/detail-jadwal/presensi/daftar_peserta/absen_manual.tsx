@@ -92,13 +92,12 @@ function ConfirmModal({
    AbsenManual
    ========================= */
 export default function AbsenManual({
-  student,
-  onBack,
-  onSubmitSuccess,
+  student, sessionId, onBack, onSubmitSuccess,
 }: {
-  student?: StudentLite;                 // opsional, tampilkan identitas bila ada
-  onBack?: () => void;                   // opsional: kembali ke daftar
-  onSubmitSuccess?: () => void;          // opsional: callback setelah simpan
+  student?: StudentLite;
+  sessionId: number;                 // ⬅️ WAJIB
+  onBack?: () => void;
+  onSubmitSuccess?: () => void;
 }) {
   const router = useRouter();
 
@@ -303,21 +302,52 @@ export default function AbsenManual({
     else router.back();           // fallback
   };
 
-  const doSubmit = () => {
-    // Contoh payload
-    console.log({
-      student,
-      status,
-      photo: photoUrl?.slice(0, 64) + "...",
-      lokasi: { ...loc, label: locLabel },
-    });
+  const doSubmit = async () => {
+    if (!student || !status || !photoUrl) return;
 
-    setConfirmOpen(false);
-    stopStream();
+    const payload = {
+      sessionId,
+      nim: student.nim,
+      status,                     // "HADIR" | "IZIN" | "SAKIT"
+      photoDataUrl: photoUrl,     // dataURL
+      location: {
+        label: locLabel || "",
+        lat: loc?.lat,
+        lng: loc?.lng,
+      },
+    };
 
-    if (onSubmitSuccess) onSubmitSuccess(); // kembali via parent state
-    else router.back();                     // fallback: kembali ke halaman sebelumnya
+    try {
+      const res = await fetch("/api/attendance/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const text = await res.text(); // <= baca dulu sebagai text
+      let data: any = null;
+      try {
+        data = JSON.parse(text);     // coba parse JSON
+      } catch {
+        // Kalau bukan JSON, tampilkan potongan HTML/error yang dikembalikan server
+        alert(`Server mengembalikan non-JSON (status ${res.status}). Cuplikan:\n${text.slice(0, 200)}…`);
+        return;
+      }
+
+      if (!res.ok || !data?.ok) {
+        alert(data?.error || `Gagal: status ${res.status}`);
+        return;
+      }
+
+      // sukses
+      setConfirmOpen(false);
+      stopStream();
+      onSubmitSuccess?.();
+    } catch (e: any) {
+      alert(e?.message || "Gagal menyimpan presensi");
+    }
   };
+
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -429,7 +459,7 @@ export default function AbsenManual({
             {/* Info + Presensi */}
             <div className="space-y-1">
               <div className="font-bold text-gray-900">Nama</div>
-              <div className="text-gray-700">{displayName}</div>
+              <div className="text-gray-700 uppercase">{displayName}</div>
 
               <div className="font-bold text-gray-900 pt-2">NPM</div>
               <div className="text-gray-700">{displayNim}</div>

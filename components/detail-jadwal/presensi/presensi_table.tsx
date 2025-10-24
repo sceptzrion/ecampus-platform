@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import { nowWIB } from "@/lib/clock";
 
 /* =========================
    Types (siap nyambung DB)
@@ -27,12 +28,35 @@ export type Student = {
 };
 
 export type PresensiTableProps = {
-  sessions?: Session[];                                       // optional; jika tidak ada -> dummy
-  students?: Student[];                                       // optional; jika tidak ada -> dummy
-  currentUserNim?: string;                                    // nim user login; untuk tombol self manual
-  onEditSession?: (sessionId: string) => void;                // klik "Edit" di header kolom
-  onManual?: (s: { id: string; name: string; nim: string }) => void; // klik Ambil Presensi
+  sessions?: Session[];
+  students?: Student[];
+  currentUserName?: string;  // ⬅️ tambah
+  currentUserNim?: string;   // ⬅️ opsional
+  onEditSession?: (sessionId: string) => void;
+  onManual?: (s: { id: string; name: string; nim: string }, sessionId: number) => void;
 };
+
+function reasonToIndo(reason?: string) {
+  switch (reason) {
+    case "permit": return "Izin";
+    case "sick":   return "Sakit";
+    case "other":  return "Alasan Lain";
+    case "none":   return "Tanpa Keterangan";
+    // untuk fallback / tidak ada record
+    case "-": 
+    default:       return "-";
+  }
+}
+
+
+function normName(s?: string) {
+  return (s || "")
+    .toUpperCase()
+    .normalize("NFKC")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 
 /* =========================
    Dummy fallback (biar tidak breaking)
@@ -159,15 +183,16 @@ function StatusBadge({
         </span>
       );
     case "absent":
-      return (
-        <div className="flex flex-col items-center gap-0.75">
-          <span className="flex items-center gap-0.5 text-[10.5px] w-fit px-1 py-0.75 rounded-sm bg-[#f1556c] text-white font-bold">
-            <Image src="/not_absen.png" alt="Tidak Hadir" width={10.5} height={10.5} />
-            Tidak Hadir
-          </span>
-          <i className="text-xs text-[#6c757d]">{ui.reason || "-"}</i>
-        </div>
-      );
+    return (
+      <div className="flex flex-col items-center gap-0.75">
+        <span className="flex items-center gap-0.5 text-[10.5px] w-fit px-1 py-0.75 rounded-sm bg-[#f1556c] text-white font-bold">
+          <Image src="/not_absen.png" alt="Tidak Hadir" width={10.5} height={10.5} />
+          Tidak Hadir
+        </span>
+        <i className="text-xs text-[#6c757d]">{reasonToIndo(ui.reason)}</i>
+      </div>
+    );
+
     case "not_started":
     default:
       return (
@@ -186,11 +211,12 @@ function StatusBadge({
 export default function PresensiTable({
   sessions = FALLBACK_SESSIONS,
   students = FALLBACK_STUDENTS,
-  currentUserNim = "2210631170131",
+  currentUserName,
+  currentUserNim,
   onEditSession,
   onManual,
 }: PresensiTableProps) {
-  const now = new Date();
+  const now = nowWIB();
 
   return (
     <table className="w-full border-collapse">
@@ -232,8 +258,16 @@ export default function PresensiTable({
       </thead>
 
       <tbody>
-        {students.map((stu, idx) => {
-          const isSelf = stu.nim === currentUserNim;
+    {students.map((stu, idx) => {
+    const byName = currentUserName
+      ? normName(stu.name) === normName(currentUserName)
+      : false;
+
+    const byNim = !byName && currentUserNim
+      ? stu.nim === currentUserNim
+      : false;
+
+    const isSelf = byName || byNim;
           // hitung hadirCount dari attendance DB + status runtime
           const hadirCount = sessions.reduce((acc, sess) => {
             const ui = resolveCellStatus(now, sess, stu.attendance?.[sess.id], isSelf);
@@ -260,7 +294,11 @@ export default function PresensiTable({
                     <StatusBadge
                       ui={ui}
                       isSelf={isSelf}
-                      onManualClick={isSelf && onManual ? () => onManual({ id: stu.id, name: stu.name, nim: stu.nim }) : undefined}
+                      onManualClick={
+                        isSelf && onManual
+                          ? () => onManual({ id: stu.id, name: stu.name, nim: stu.nim }, Number(sess.id))
+                          : undefined
+                      }
                     />
                   </td>
                 );

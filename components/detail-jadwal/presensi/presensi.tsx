@@ -10,12 +10,17 @@ type SelectedStudent = { id: string; name: string; nim: string } | null;
 export default function PresensiPage() {
   const [view, setView] = useState<"list" | "absen">("list");
   const [selected, setSelected] = useState<SelectedStudent>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
 
   const [sessions, setSessions] = useState<Session[] | null>(null);
   const [students, setStudents] = useState<Student[] | null>(null);
 
+  // ⬇️ AMBIL NAMA USER DARI localStorage (diset saat login)
+  const [authName, setAuthName] = useState<string | undefined>(undefined);
+  // (opsional) nim fallback
+  const [authNim, setAuthNim] = useState<string | undefined>(undefined);
+
   const classId = 101; // sesuaikan
-  const currentUserNim = "2210631170131"; // ambil dari session login kamu
 
   useEffect(() => {
     let alive = true;
@@ -33,8 +38,25 @@ export default function PresensiPage() {
     return () => { alive = false; };
   }, [classId]);
 
-  const openManual = (s: { id: string; name: string; nim: string }) => {
+  // ⬇️ load authUser dari localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("authUser");
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u?.name) setAuthName(u.name);
+        if (u?.email) {
+          // kalau kamu simpan nim terpisah, ambil dari situ.
+          // atau derive dari email student (opsional)
+          // setAuthNim(deriveNim(u.email));
+        }
+      }
+    } catch {}
+  }, []);
+
+  const openManual = (s: { id: string; name: string; nim: string }, sessionId: number) => {
     setSelected(s);
+    setSelectedSessionId(sessionId);
     setView("absen");
   };
 
@@ -66,12 +88,18 @@ export default function PresensiPage() {
           <Peserta
             sessions={sessions}
             students={students}
-            currentUserNim={currentUserNim}
+            currentUserName={authName}    
+            currentUserNim={authNim}       
             onManual={openManual}
-          />
+          /> 
         )
       ) : (
-        <AbsenManual student={selected} onBack={backToList} onSubmitSuccess={submitSuccess} />
+        <AbsenManual
+          student={selected}
+          sessionId={selectedSessionId ?? 0}
+          onBack={backToList}
+          onSubmitSuccess={submitSuccess}
+        />
       )}
     </div>
   );

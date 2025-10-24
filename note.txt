@@ -1,0 +1,20 @@
+Cara pakai (super simpel)
+
+Set tanggal testing
+
+http://localhost:3000/dev/set-time?date=2025-10-27
+(cookie x-fake-today diset; refresh halaman presensi → kolom yang tanggalnya cocok akan jadi Ambil Presensi dst)
+
+Kembalikan normal: http://localhost:3000/dev/set-time?clear=1
+
+Reset & seed ulang data presensi
+
+http://localhost:3000/dev/reseed?classId=101
+(hapus attendance kelas 101 → isi dummy untuk semua sesi sebelum “hari ini (WIB)”)
+
+Hanya hapus tanpa isi ulang: http://localhost:3000/dev/reseed?classId=101&reseed=0
+
+Semuanya otomatis nonaktif di production.
+
+reset 
+http://localhost:3000/dev/reset

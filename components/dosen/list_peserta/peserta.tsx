@@ -2,15 +2,19 @@
 
 import React from "react";
 import Image from "next/image";
-import Table from "@/components/dosen/list_peserta/presensi_table";
+import Table, { Session, Student } from "@/components/dosen/list_peserta/presensi_table";
 
 export default function Peserta({
-  onManual,
+  sessions,
+  students,
+  onReview,
 }: {
-  onManual?: (s: { id: string; name: string; nim: string }) => void;
+  sessions: Session[];
+  students: Student[];
+  onReview?: (s: { id: string; name: string; nim: string }, sessionId: number) => void;
 }) {
   return (
-    <div className="max-w-full bg-white overflow-x-auto">
+    <div className="max-w-full bg-white">
       <div className="flex flex-col p-6 bg-white rounded-sm gap-3">
         <div className="flex flex-row items-center gap-2.5 bg-[#F3F7F9] p-3 text-[15px] font-bold">
           <Image src="/peserta.png" alt="Peserta" width={13} height={15} />
@@ -28,10 +32,8 @@ export default function Peserta({
           </a>
         </div>
 
-        <div className="w-full">
-          <div className="overflow-x-auto ">
-            <Table onManual={onManual} />
-          </div>
+        <div className="w-full overflow-x-auto">
+          <Table sessions={sessions} students={students} onReview={onReview} />
         </div>
       </div>
     </div>

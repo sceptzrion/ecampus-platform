@@ -5,15 +5,13 @@ import Image from "next/image";
 import Table, { Session, Student } from "@/components/detail-jadwal/presensi/presensi_table";
 
 export default function Peserta({
-  sessions,
-  students,
-  currentUserNim,
-  onManual,
+  sessions, students, currentUserName, currentUserNim, onManual
 }: {
   sessions: Session[];
   students: Student[];
-  currentUserNim: string;
-  onManual?: (s: { id: string; name: string; nim: string }) => void;
+  currentUserName?: string;  // ⬅️ tambah
+  currentUserNim?: string;   // ⬅️ opsional fallback
+  onManual?: (s:{id:string;name:string;nim:string}, sessionId:number)=>void;
 }) {
   return (
     <div className="max-w-full bg-white">
@@ -38,8 +36,9 @@ export default function Peserta({
           <Table
             sessions={sessions}
             students={students}
+            currentUserName={currentUserName}
             currentUserNim={currentUserNim}
-            onManual={onManual}
+            onManual={onManual}  // sudah sesuai
           />
         </div>
       </div>

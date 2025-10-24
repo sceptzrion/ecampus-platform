@@ -10,13 +10,13 @@ export default function PengajaranTable() {
   const jadwal = [
     {
       id: 1,
-      nama: "PEMROGRAMAN BERBASIS MOBILE",
-      kode: "#2315520003",
+      nama: "CAPSTONE PROJECT",
+      kode: "#2515520028",
       sks: "3 SKS",
       mode: "Offline",
-      ruang: "Ruang Kuliah 1 (KULIAH1)",
-      waktu: "Senin, 07:00 - 08:40 WIB",
-      kelas: "D - 2315520003",
+      ruang: "FASILKOM 4.79-5 (251-7A-22)",
+      waktu: "Senin, 07:30 - 10:00 WIB",
+      kelas: "7A - 2515520028",
     },
     {
       id: 2,
