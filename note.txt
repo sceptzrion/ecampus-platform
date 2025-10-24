@@ -9,11 +9,6 @@ Kembalikan normal: http://localhost:3000/dev/set-time?clear=1
 
 Reset & seed ulang data presensi
 
-http://localhost:3000/dev/reseed?classId=101
-(hapus attendance kelas 101 → isi dummy untuk semua sesi sebelum “hari ini (WIB)”)
-
-Hanya hapus tanpa isi ulang: http://localhost:3000/dev/reseed?classId=101&reseed=0
-
 Semuanya otomatis nonaktif di production.
 
 reset 
