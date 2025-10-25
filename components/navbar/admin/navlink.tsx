@@ -9,30 +9,60 @@ type Props = {
   user: { name: string; email: string; role: string };
 };
 
+/** Ambil nilai cookie sederhana di client */
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+/** Parse "YYYY-MM-DD" -> Date (local 00:00) */
+function parseYmd(s: string | null): Date | null {
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.trim());
+  if (!m) return null;
+  const y = +m[1], mo = +m[2], d = +m[3];
+  // Date(year, monthIndex, day) → local midnight
+  const dt = new Date(y, mo - 1, d, 0, 0, 0, 0);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
 const Navlink = ({ user }: Props) => {
   const [open, setOpen] = useState(false);
   const [nowStr, setNowStr] = useState<string>("");
+  const [fakeDate, setFakeDate] = useState<Date | null>(null);
   const dropdownRef = useRef<HTMLLIElement>(null);
   const router = useRouter();
 
-  // === Realtime clock (Hari, dd/mm/yyyy | hh.mm.ss) ===
+  // Baca cookie x-fake-today → simpan Date (hanya tanggalnya)
+  const readFakeCookie = () => {
+    const raw = getCookie("x-fake-today");
+    setFakeDate(parseYmd(raw));
+  };
+
+  // Baca di mount + saat tab kembali aktif + polling ringan
+  useEffect(() => {
+    readFakeCookie();
+
+    const onVis = () => {
+      if (document.visibilityState === "visible") readFakeCookie();
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    const poll = setInterval(readFakeCookie, 5000);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      clearInterval(poll);
+    };
+  }, []);
+
+  // Realtime clock (Hari, dd/mm/yyyy | hh.mm.ss)
   useEffect(() => {
     const tick = () => {
-      const d = new Date();
-      const hari = new Intl.DateTimeFormat("id-ID", {
-        weekday: "long",
-        timeZone: "Asia/Jakarta",
-      }).format(d);
+      const now = new Date();
 
-      const tanggal = new Intl.DateTimeFormat("id-ID", {
-        timeZone: "Asia/Jakarta",
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-        .format(d)
-        .replaceAll("-", "/"); // dd/mm/yyyy
-
+      // Format waktu WIB (real-time)
       const waktu = new Intl.DateTimeFormat("id-ID", {
         timeZone: "Asia/Jakarta",
         hour: "2-digit",
@@ -40,8 +70,27 @@ const Navlink = ({ user }: Props) => {
         second: "2-digit",
         hour12: false,
       })
-        .format(d)
+        .format(now)
         .replace(/:/g, "."); // hh.mm.ss
+
+      // Tanggal + hari:
+      // - jika fakeDate ada → pakai fakeDate untuk hari & tanggal
+      // - jika tidak ada → pakai now (WIB)
+      const baseDate = fakeDate ?? now;
+
+      const hari = new Intl.DateTimeFormat("id-ID", {
+        weekday: "long",
+        timeZone: "Asia/Jakarta",
+      }).format(baseDate);
+
+      const tanggal = new Intl.DateTimeFormat("id-ID", {
+        timeZone: "Asia/Jakarta",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+        .format(baseDate)
+        .replaceAll("-", "/"); // dd/mm/yyyy
 
       setNowStr(`${hari}, ${tanggal} | ${waktu}`);
     };
@@ -49,9 +98,9 @@ const Navlink = ({ user }: Props) => {
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [fakeDate]);
 
-  // === Tutup dropdown kalau klik di luar ===
+  // Tutup dropdown kalau klik di luar
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {

@@ -1,160 +1,91 @@
-// app/api/dev/reset/route.ts
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
-import type { RowDataPacket } from "mysql2";
+import { assertDev } from "@/lib/dev-guard";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-function devGuard() {
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Disabled in production" }, { status: 403 });
+export async function GET() {
+  try {
+    assertDev();
+  } catch (e: any) {
+    return new NextResponse(e.message || "Not Found", { status: e.status || 404 });
   }
-  return null;
-}
-
-export async function GET(req: Request) {
-  const guard = devGuard();
-  if (guard) return guard;
-
-  const url = new URL(req.url);
-
-  // OPTIONAL: filter per kelas (kalau mau)
-  // ?classId=101  → hanya sesi class 101 yang dipakai SEED
-  const classIdParam = url.searchParams.get("classId");
-  const classId = classIdParam ? Number(classIdParam) : null;
-
-  // OPTIONAL: clearOnly=true untuk hanya mengosongkan attendance tanpa isi ulang
-  const clearOnly = url.searchParams.get("clearOnly") === "true";
-
-  // Berapa pertemuan pertama yang akan di-seed? (default 5 = “sebelum pertemuan 6”)
-  const seedCount = Number(url.searchParams.get("until") || 5);
-
-  // Rasio random (bisa dioverride lewat query param)
-  const presentRatio = Number(url.searchParams.get("present") || 0.78);
-  const manualRatio  = Number(url.searchParams.get("presentManual") || 0.12);
-  const permitRatio  = Number(url.searchParams.get("permit") || 0.70);
-  const sickRatio    = Number(url.searchParams.get("sick") || 0.20);
 
   const pool = getPool();
   const conn = await pool.getConnection();
   try {
-    await conn.query("SET time_zone = '+07:00'");
+    await conn.query("SET FOREIGN_KEY_CHECKS=0");
 
-    // 1) HAPUS attendance (global atau per kelas)
-    if (classId) {
-      await conn.execute(
-        `DELETE a
-           FROM attendance a
-           JOIN sessions s ON s.id = a.session_id
-          WHERE s.class_id = ?`,
-        [classId]
-      );
-    } else {
-      await conn.execute(`DELETE FROM attendance`);
-    }
+    // kosongkan data presensi & sesi demo
+    await conn.query("DELETE FROM attendance");
+    await conn.query("DELETE FROM sessions");
+    await conn.query("DELETE FROM classes WHERE id=101");
 
-    if (clearOnly) {
-      return new NextResponse(
-        `<pre>Attendance CLEARED.
-classId: ${classId ?? "(ALL)"}
-seedCount (first N sessions): ${seedCount} (skipped, clearOnly=true)</pre>`,
-        { headers: { "content-type": "text/html; charset=utf-8" } }
-      );
-    }
-
-    // 2) AMBIL daftar sesi, urut dari paling awal.
-    //    Default: ambil SEMUA sesi (lintas kelas). Kalau classId ada → filter kelas tersebut.
-    let sessions: RowDataPacket[];
-    if (classId) {
-      const [rows] = await conn.query<RowDataPacket[]>(
-        `SELECT id, class_id, start_at
-           FROM sessions
-          WHERE class_id = ?
-          ORDER BY start_at ASC
-          LIMIT ?`,
-        [classId, seedCount]
-      );
-      sessions = rows;
-    } else {
-      const [rows] = await conn.query<RowDataPacket[]>(
-        `SELECT id, class_id, start_at
-           FROM sessions
-          ORDER BY start_at ASC
-          LIMIT ?`,
-        [seedCount]
-      );
-      sessions = rows;
-    }
-
-    // 3) AMBIL semua mahasiswa aktif (role=student)
-    const [students] = await conn.query<RowDataPacket[]>(
-      `SELECT id, name, nim FROM users WHERE role='student' AND is_active=1`
+    // seed CLASS demo (id=101) — gunakan struktur barumu
+    await conn.query(
+      `INSERT INTO classes
+        (id, code, name, semester, year, program, room, day_of_week, start_time, end_time, is_active)
+       VALUES
+        (101,'2515520028','CAPSTONE PROJECT','ganjil','2025/2026','S1-IF','FASILKOM 4.79-5 (251-7A-22)',1,'07:30:00','10:00:00',1)`
     );
 
-    // 4) Generate rows dummy hanya untuk N sesi pertama (sebelum pertemuan ke-6)
-    //    Status: 78% present, 12% present_manual, sisanya absent (permit/sick/other)
-    const rows: Array<[number, number, "present" | "present_manual" | "absent", "none" | "permit" | "sick" | "other", "rfid" | "manual"]> = [];
-
+    // seed 4 sesi (tanggal contoh) untuk class 101
+    const sessions = [
+      { topic: "perkenalan capstone project", start: "2025-08-18 07:30:00", end: "2025-08-18 10:00:00" },
+      { topic: "Pemilihan topik project",     start: "2025-09-01 07:30:00", end: "2025-09-01 10:00:00" },
+      { topic: "Perancangan Project",         start: "2025-09-15 07:30:00", end: "2025-09-15 10:00:00" },
+      { topic: "Implementasi Project",        start: "2025-09-29 07:30:00", end: "2025-09-29 10:00:00" },
+    ];
     for (const s of sessions) {
-      for (const u of students) {
-        const r = Math.random();
-        let status: "present" | "present_manual" | "absent";
-        if (r < presentRatio) status = "present";
-        else if (r < presentRatio + manualRatio) status = "present_manual";
-        else status = "absent";
-
-        let reason: "none" | "permit" | "sick" | "other" = "none";
-        if (status === "absent") {
-          const ra = Math.random();
-          if (ra < permitRatio) reason = "permit";
-          else if (ra < permitRatio + sickRatio) reason = "sick";
-          else reason = "other";
-        }
-
-        // sumber: kalau hadir manual → "manual", kalau hadir rfid → "rfid", kalau absen → "manual" (tetap bisa manual record)
-        const source: "rfid" | "manual" = status === "present" ? "rfid" : "manual";
-
-        rows.push([Number(s.id), Number(u.id), status, reason, source]);
-      }
-    }
-
-    if (rows.length) {
       await conn.query(
-        `INSERT INTO attendance (session_id, user_id, status, reason, source, taken_at)
-         VALUES ${rows.map(() => "(?,?,?,?,?,UTC_TIMESTAMP())").join(",")}`,
-        rows.flat()
+        `INSERT INTO sessions (class_id, topic, start_at, end_at) VALUES (101, ?, ?, ?)`,
+        [s.topic, s.start, s.end]
       );
     }
 
-    const html = `
-<pre>✅ RESET & SEED PRESENSI (MODE DEFAULT: HANYA SEBELUM PERTEMUAN KE-6)
+    // seed users minimal (4 mahasiswa + 1 dosen + 1 admin) — upsert by email
+    const students = [
+      ["MUHAMAD IKHSAN RIZQI YANUAR", "2210631170131@student.unsika.ac.id", "2210631170131"],
+      ["ANANTA ZIAUROHMAN AZ ZAKI",  "2210631170007@student.unsika.ac.id", "2210631170007"],
+      ["MAHESWARA ABHISTA HAMDAN HAFIZ","2210631170128@student.unsika.ac.id","2210631170128"],
+      ["GUDANG GUNAWAN",             "2210631170124@student.unsika.ac.id", "2210631170124"],
+    ];
+    for (const [name, email, nim] of students) {
+      await conn.query(
+        `INSERT INTO users (name, email, nim, password, role, is_active)
+         VALUES (?, ?, ?, 'password', 'student', 1)
+         ON DUPLICATE KEY UPDATE name=VALUES(name), nim=VALUES(nim), is_active=1`,
+        [name, email, nim]
+      );
+    }
+    await conn.query(
+      `INSERT INTO users (name,email,password,role,is_active)
+       VALUES ('Dosen Demo','dosen.demo@staff.unsika.ac.id','password','staff',1)
+       ON DUPLICATE KEY UPDATE role='staff', is_active=1`
+    );
+    await conn.query(
+      `INSERT INTO users (name,email,password,role,is_active)
+       VALUES ('Administrator','admin@admin.unsika.ac.id','password','admin',1)
+       ON DUPLICATE KEY UPDATE role='admin', is_active=1`
+    );
 
-classId                 : ${classId ?? "(ALL classes)"}
-seedCount (first N)     : ${seedCount}
-sessions used           : ${sessions.length}
-students                : ${students.length}
-rows inserted           : ${rows.length}
+    // seed Rooms + Readers minimal
+    await conn.query(`INSERT INTO rooms (code,name,location,is_active)
+                      VALUES ('R-251-7A-22','FASILKOM 4.79-5 (251-7A-22)','Gedung Fasilkom',1)
+                      ON DUPLICATE KEY UPDATE name=VALUES(name), location=VALUES(location), is_active=1`);
+    const [[room]] = await conn.query<any[]>("SELECT id FROM rooms WHERE code='R-251-7A-22' LIMIT 1");
+    if (room?.id) {
+      await conn.query(
+        `INSERT INTO rfid_readers (name,room_id,secret,is_active)
+         VALUES ('Reader Lab 4.79-5', ?, 'dev-secret', 1)
+         ON DUPLICATE KEY UPDATE is_active=1`,
+        [room.id]
+      );
+    }
 
-Rasio:
-- present               : ${presentRatio}
-- present_manual        : ${manualRatio}
-- absent → permit       : ${permitRatio}
-- absent → sick         : ${sickRatio}
-- absent → other        : ${Math.max(0, 1 - permitRatio - sickRatio).toFixed(2)}
-
-Tips:
-- /dev/reset                              → default (first 5 sessions across ALL classes)
-- /dev/reset?classId=101                  → hanya kelas 101
-- /dev/reset?until=3                      → hanya 3 pertemuan pertama
-- /dev/reset?clearOnly=true               → hanya clear, tanpa seed
-- /dev/reset?present=0.8&presentManual=0.1&permit=0.6&sick=0.3
-</pre>
-    `;
-    return new NextResponse(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    await conn.query("SET FOREIGN_KEY_CHECKS=1");
+    return NextResponse.json({ ok: true, seeded: true });
   } catch (e: any) {
-    console.error("reset error:", e);
-    return NextResponse.json({ error: e?.message || "internal error" }, { status: 500 });
+    console.error(e);
+    return NextResponse.json({ ok: false, error: e.message || "reset failed" }, { status: 500 });
   } finally {
     conn.release();
   }

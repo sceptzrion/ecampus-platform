@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 type Item = {
   href: string;
   label: string;
-  icon: string;                 // path icon di /public
+  icon: string;
   withBg?: boolean;
   isActive: (path: string) => boolean;
 };
@@ -93,8 +93,11 @@ function Section({
 
 export default function Sidelink({ collapsed }: { collapsed: boolean }) {
   const pathname = usePathname();
+  const starts = (base: string) => (p: string) => p === base || p.startsWith(base + "/");
 
-  // ────────────── MENU ──────────────
+  const isDevToolsEnabled =
+    process.env.NEXT_PUBLIC_ENABLE_DEVTOOLS === "1" || process.env.NODE_ENV !== "production";
+
   const menuItems: Item[] = [
     {
       href: "/admin/dashboard",
@@ -104,110 +107,64 @@ export default function Sidelink({ collapsed }: { collapsed: boolean }) {
     },
   ];
 
-  // ────────────── DATA MASTER (CRUD) ──────────────
-  // Sessions DIHAPUS (sudah dikelola dalam Classes)
   const masterItems: Item[] = [
-    {
-      href: "/admin/users",
-      label: "Users",
-      icon: "/biodata.png", // ganti sesuai icon-mu
-      isActive: (p) => p.startsWith("/admin/users"),
-    },
-    {
-      href: "/admin/classes",
-      label: "Classes",
-      icon: "/biodata.png", // ganti sesuai icon-mu
-      isActive: (p) => p.startsWith("/admin/classes"),
-    },
+    { href: "/admin/users", label: "Users", icon: "/biodata.png", isActive: starts("/admin/users") },
+    { href: "/admin/rooms", label: "Rooms", icon: "/calender.png", isActive: starts("/admin/rooms") },
+    { href: "/admin/classes", label: "Classes", icon: "/biodata.png", isActive: starts("/admin/classes") },
   ];
 
-  // ────────────── PRESENSI ──────────────
+  const infraItems: Item[] = [
+    { href: "/admin/readers", label: "RFID Readers", icon: "/hasil_checklist.png", isActive: starts("/admin/readers") },
+  ];
+
   const presenceItems: Item[] = [
-    {
-      href: "/admin/attendance",
-      label: "Attendance",
-      icon: "/checklist.png",
-      isActive: (p) => p.startsWith("/admin/attendance"),
-    },
-    {
-      href: "/admin/rfid-logs",
-      label: "RFID Logs",
-      icon: "/hasil_checklist.png",
-      isActive: (p) => p.startsWith("/admin/rfid-logs"),
-    },
+    { href: "/admin/attendance", label: "Attendance", icon: "/checklist.png", isActive: starts("/admin/attendance") },
+    { href: "/admin/rfid-logs", label: "RFID Logs", icon: "/hasil_checklist.png", isActive: starts("/admin/rfid-logs") },
   ];
 
-  // ────────────── PENGATURAN ──────────────
   const settingsItems: Item[] = [
-    {
-      href: "/admin/admins",
-      label: "Admins",
-      icon: "/lock.png",
-      isActive: (p) => p.startsWith("/admin/admins"),
-    },
-    {
-      href: "/admin/settings",
-      label: "Settings",
-      icon: "/dropdown.png", // siapkan icon /public/settings.png
-      isActive: (p) => p.startsWith("/admin/settings"),
-    },
+    { href: "/admin/settings", label: "Settings", icon: "/dropdown.png", isActive: starts("/admin/settings") },
   ];
+
+  // tampilkan Dev Tools jika aktif
+  if (isDevToolsEnabled) {
+    settingsItems.unshift({
+      href: "/admin/dev-tools",
+      label: "Dev Tools",
+      icon: "/dashboard-inactive.png",
+      isActive: starts("/admin/dev-tools"),
+    });
+  }
 
   return (
     <ul className={`flex flex-col text-[#6e768e] ${collapsed ? "pt-0" : "pt-5"}`}>
-      {/* MENU */}
       <Section title="MENU" collapsed={collapsed}>
         {menuItems.map((it) => (
-          <NavItem
-            key={it.href}
-            href={it.href}
-            label={it.label}
-            icon={it.icon}
-            active={it.isActive(pathname)}
-            collapsed={collapsed}
-          />
+          <NavItem key={it.href} {...it} active={it.isActive(pathname)} collapsed={collapsed} />
         ))}
       </Section>
 
-      {/* DATA MASTER */}
       <Section title="DATA MASTER" collapsed={collapsed}>
         {masterItems.map((it) => (
-          <NavItem
-            key={it.href}
-            href={it.href}
-            label={it.label}
-            icon={it.icon}
-            active={it.isActive(pathname)}
-            collapsed={collapsed}
-          />
+          <NavItem key={it.href} {...it} active={it.isActive(pathname)} collapsed={collapsed} />
         ))}
       </Section>
 
-      {/* PRESENSI */}
+      <Section title="INFRASTRUKTUR" collapsed={collapsed}>
+        {infraItems.map((it) => (
+          <NavItem key={it.href} {...it} active={it.isActive(pathname)} collapsed={collapsed} />
+        ))}
+      </Section>
+
       <Section title="PRESENSI" collapsed={collapsed}>
         {presenceItems.map((it) => (
-          <NavItem
-            key={it.href}
-            href={it.href}
-            label={it.label}
-            icon={it.icon}
-            active={it.isActive(pathname)}
-            collapsed={collapsed}
-          />
+          <NavItem key={it.href} {...it} active={it.isActive(pathname)} collapsed={collapsed} />
         ))}
       </Section>
 
-      {/* PENGATURAN */}
       <Section title="PENGATURAN" collapsed={collapsed}>
         {settingsItems.map((it) => (
-          <NavItem
-            key={it.href}
-            href={it.href}
-            label={it.label}
-            icon={it.icon}
-            active={it.isActive(pathname)}
-            collapsed={collapsed}
-          />
+          <NavItem key={it.href} {...it} active={it.isActive(pathname)} collapsed={collapsed} />
         ))}
       </Section>
     </ul>
