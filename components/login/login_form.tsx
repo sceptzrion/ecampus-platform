@@ -62,20 +62,27 @@ const LoginForm: React.FC = () => {
 
       if (!res.ok || !("ok" in data) || data.ok === false) {
         setErrorMsg((data as any)?.error || "Email atau password salah.");
-        setPassword(""); // reset password saat error
+        setPassword("");
         return;
       }
 
-      // simpan user demo (prototype) dan redirect berdasarkan domain
+      // Simpan sesi login (sementara di localStorage untuk demo)
       localStorage.setItem("authUser", JSON.stringify(data.user));
+
       const lowerEmail = email.toLowerCase();
-      if (lowerEmail.endsWith("@staff.unsika.ac.id")) {
-        router.push("/dosen/dashboard");            // sesuaikan dengan rute milikmu
+
+      // ====== 🌟 Tambahan logika redirect berdasarkan domain ======
+      if (lowerEmail.endsWith("@admin.unsika.ac.id")) {
+        router.push("/admin/dashboard");
+      } else if (lowerEmail.endsWith("@staff.unsika.ac.id")) {
+        router.push("/dosen/dashboard");
       } else if (lowerEmail.endsWith("@student.unsika.ac.id")) {
-        router.push("/dashboard/dashboard-akademik");        // sesuaikan dengan rute milikmu
+        router.push("/dashboard/dashboard-akademik");
       } else {
         router.push("/dashboard/dashboard-akademik");
       }
+      // ============================================================
+
     } catch {
       setErrorMsg("Terjadi kesalahan jaringan. Coba lagi.");
       setPassword("");
