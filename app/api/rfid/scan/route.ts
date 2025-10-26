@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 
     // user dari UID
     const [[user]] = await conn.query<any[]>(
-      "SELECT id, name, email, role FROM users WHERE uid_rfid = ?",
+      "SELECT id, name, email, role FROM users WHERE rfid_uid = ?",
       [uid]
     );
     if (!user) {
