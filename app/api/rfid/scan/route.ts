@@ -1,7 +1,6 @@
 // app/api/rfid/scan/route.ts
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
-import { getNowWIB } from "@/lib/fake-time";
 
 /**
  * Headers:
@@ -10,6 +9,7 @@ import { getNowWIB } from "@/lib/fake-time";
  * Body JSON:
  *  { uid: "A1B2C3D4", rssi?: number, ts_ms?: number }
  */
+
 export async function POST(req: Request) {
   const pool = getPool();
   const conn = await pool.getConnection();
@@ -57,12 +57,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, handled: false, reason: "reader_inactive" });
     }
 
-    // === WIB sekarang (ikut fake kalau diset) ===
-    const now = await getNowWIB(conn);
-    const day_of_week = Number(now.dow);    // 1=Mon..7=Sun (skema)
-    const hhmmss = String(now.hhmmss);      // "HH:MM:SS"
-    const ds = String(now.ds);              // "YYYY-MM-DD"
-
     // user dari UID
     const [[user]] = await conn.query<any[]>(
       "SELECT id, name, email, role FROM users WHERE rfid_uid = ?",
@@ -81,7 +75,18 @@ export async function POST(req: Request) {
       });
     }
 
-    // cari kelas aktif di ruangan reader (pakai day_of_week & hhmmss dari fake/real)
+    // hitung hari & waktu WIB now
+    const [[dowRow]] = await conn.query<any[]>(`SELECT DAYOFWEEK(CURRENT_DATE()) AS dw`);
+    const mysqlDw = Number(dowRow.dw);           // 1=Sun..7=Sat
+    const day_of_week = mysqlDw === 1 ? 7 : mysqlDw - 1; // 1=Mon..7=Sun (sesuai skema kamu)
+
+    const [[tmRow]] = await conn.query<any[]>(
+      `SELECT DATE_FORMAT(NOW(), '%H:%i:%s') AS hhmmss, DATE_FORMAT(CURRENT_DATE(), '%Y-%m-%d') AS ds`
+    );
+    const hhmmss = tmRow.hhmmss as string;
+    const ds = tmRow.ds as string;
+
+    // cari kelas aktif di ruangan reader
     const [activeClasses] = await conn.query<any[]>(
       `SELECT id, name, start_time, end_time
          FROM classes
@@ -114,8 +119,8 @@ export async function POST(req: Request) {
     const endAtWib   = `${ds} ${klass.end_time}`;
 
     const [[sess]] = await conn.query<any[]>(
-      `SELECT id FROM sessions WHERE class_id=? AND DATE(start_at)=? LIMIT 1`,
-      [klass.id, ds]
+      `SELECT id FROM sessions WHERE class_id=? AND DATE(start_at)=CURRENT_DATE() LIMIT 1`,
+      [klass.id]
     );
 
     let sessionId = sess?.id;
@@ -125,8 +130,7 @@ export async function POST(req: Request) {
          VALUES (?, NULL, ?, ?)`,
         [klass.id, startAtWib, endAtWib]
       );
-      // @ts-ignore
-      sessionId = insSession.insertId;
+      sessionId = (insSession as any).insertId;
     }
 
     // attendance: jika belum ada → present
@@ -137,11 +141,11 @@ export async function POST(req: Request) {
     if (!exist) {
       await conn.query(
         `INSERT INTO attendance(session_id, user_id, status, reason, photo_path)
-         VALUES (?, ?, 'present', 'none', NULL)`,
+         VALUES (?, ?, 'present', NULL, NULL)`,
         [sessionId, user.id]
       );
     }
-    // kalau sudah absent, default tidak override
+    // kalau sudah absent, default tidak override (bisa diubah sesuai kebijakan)
 
     // LOG: sukses
     await conn.query(
@@ -164,6 +168,6 @@ export async function POST(req: Request) {
     console.error(e);
     return NextResponse.json({ error: e?.message || "internal error" }, { status: 500 });
   } finally {
-    try { conn.release(); } catch {}
+    try { (conn as any).release?.(); } catch {}
   }
 }
