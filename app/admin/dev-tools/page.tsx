@@ -4,6 +4,7 @@ import React, { useState } from "react";
 
 export default function DevToolsPage() {
   const [date, setDate] = useState("");
+  const [timeHM, setTimeHM] = useState(""); // <-- NEW
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -11,10 +12,20 @@ export default function DevToolsPage() {
     if (!date) { setMsg("Pilih tanggal dulu."); return; }
     setBusy(true); setMsg(null);
     try {
-      const r = await fetch(`/dev/set-time?date=${encodeURIComponent(date)}`, { cache: "no-store" });
+      // jika timeHM diisi, kirim dt=YYYY-MM-DDTHH:mm
+      const qs = timeHM
+        ? `dt=${encodeURIComponent(`${date}T${timeHM}`)}`
+        : `date=${encodeURIComponent(date)}`;
+
+      const r = await fetch(`/dev/set-time?${qs}`, { cache: "no-store" });
       const j = await r.json();
-      if (!r.ok || !j.ok) throw new Error(j?.error || "Gagal set tanggal");
-      setMsg(`Tanggal palsu di-set: ${date}. Refresh halaman presensi untuk melihat efeknya.`);
+      if (!r.ok || !j.ok) throw new Error(j?.error || "Gagal set waktu");
+
+      setMsg(
+        timeHM
+          ? `Waktu palsu di-set: ${date} ${timeHM} WIB.`
+          : `Tanggal palsu di-set: ${date}.`
+      );
     } catch (e: any) {
       setMsg(e.message || "Gagal");
     } finally { setBusy(false); }
@@ -26,7 +37,7 @@ export default function DevToolsPage() {
       const r = await fetch(`/dev/set-time?clear=1`, { cache: "no-store" });
       const j = await r.json();
       if (!r.ok || !j.ok) throw new Error(j?.error || "Gagal clear");
-      setMsg("Tanggal palsu dihapus. Kembali ke waktu asli.");
+      setMsg("Waktu palsu dihapus. Kembali ke waktu asli.");
     } catch (e: any) {
       setMsg(e.message || "Gagal");
     } finally { setBusy(false); }
@@ -56,13 +67,19 @@ export default function DevToolsPage() {
 
       <div className="bg-white rounded-xs p-6 grid gap-6 md:grid-cols-2">
         <div className="border rounded-md p-4">
-          <h4 className="font-semibold mb-3">Set Fake Today (WIB)</h4>
-          <div className="flex items-center gap-2">
+          <h4 className="font-semibold mb-3">Set Fake Date/Time (WIB)</h4>
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="date"
               className="border px-3 py-2 rounded"
               value={date}
               onChange={(e)=>setDate(e.target.value)}
+            />
+            <input
+              type="time"
+              className="border px-3 py-2 rounded"
+              value={timeHM}
+              onChange={(e)=>setTimeHM(e.target.value)}
             />
             <button
               onClick={setFake}
@@ -79,8 +96,10 @@ export default function DevToolsPage() {
               Clear
             </button>
           </div>
-          <p className="text-xs text-[#6c757d] mt-2">
-            Contoh manual: <code>/dev/set-time?date=2025-10-27</code> &nbsp;|&nbsp;
+          <p className="text-xs text-[#6c757d] mt-2 space-x-2">
+            <span>Contoh:</span>
+            <code>/dev/set-time?date=2025-10-27</code>
+            <code>/dev/set-time?dt=2025-10-27T16:45</code>
             <code>/dev/set-time?clear=1</code>
           </p>
         </div>
@@ -88,7 +107,7 @@ export default function DevToolsPage() {
         <div className="border rounded-md p-4">
           <h4 className="font-semibold mb-3">Reset & Seed Data Presensi</h4>
           <p className="text-sm text-[#6c757d] mb-3">
-            Mengosongkan attendance & sessions lalu mengisi contoh data (Class 101, sessions, users, room/reader).
+            Mengosongkan attendance & sessions lalu mengisi contoh data (Class 101, sessions, users, room/reader) dengan distribusi kehadiran acak dan mayoritas HADIR.
           </p>
           <button
             onClick={resetAll}

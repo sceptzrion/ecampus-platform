@@ -9,79 +9,76 @@ type Props = {
   user: { name: string; email: string; role: string };
 };
 
-/** Ambil nilai cookie sederhana di client */
+/* ——— utils cookie ——— */
 function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
   const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return m ? decodeURIComponent(m[1]) : null;
 }
 
-/** Parse "YYYY-MM-DD" -> Date (local 00:00) */
+/** parse "YYYY-MM-DD" -> Date 00:00 local */
 function parseYmd(s: string | null): Date | null {
   if (!s) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.trim());
   if (!m) return null;
-  const y = +m[1], mo = +m[2], d = +m[3];
-  // Date(year, monthIndex, day) → local midnight
-  const dt = new Date(y, mo - 1, d, 0, 0, 0, 0);
-  return isNaN(dt.getTime()) ? null : dt;
+  const d = new Date(+m[1], +m[2] - 1, +m[3], 0, 0, 0, 0);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/** parse "YYYY-MM-DDTHH:mm" -> Date local */
+function parseYmdHm(s: string | null): Date | null {
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(s.trim());
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], 0, 0);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 const Navlink = ({ user }: Props) => {
   const [open, setOpen] = useState(false);
   const [nowStr, setNowStr] = useState<string>("");
-  const [fakeDate, setFakeDate] = useState<Date | null>(null);
+  const [offsetMs, setOffsetMs] = useState<number>(0);   // fake-now offset (jam+menit)
+  const [fakeDateOnly, setFakeDateOnly] = useState<Date | null>(null); // fake-today saja
   const dropdownRef = useRef<HTMLLIElement>(null);
   const router = useRouter();
 
-  // Baca cookie x-fake-today → simpan Date (hanya tanggalnya)
-  const readFakeCookie = () => {
-    const raw = getCookie("x-fake-today");
-    setFakeDate(parseYmd(raw));
+  /* Baca cookie fake waktu:
+     - x-fake-now  : YYYY-MM-DDTHH:mm → tampilkan tanggal & jam MENURUT nilai ini (berjalan tiap detik)
+     - x-fake-today: YYYY-MM-DD       → tampilkan tanggal palsu, jam real-time WIB
+  */
+  const readFakeCookies = () => {
+    const rawNow = getCookie("x-fake-now");
+    const dtNow = parseYmdHm(rawNow);
+    if (dtNow) {
+      setOffsetMs(dtNow.getTime() - Date.now());
+      setFakeDateOnly(null);
+      return;
+    }
+    const rawToday = getCookie("x-fake-today");
+    const dtToday = parseYmd(rawToday);
+    setFakeDateOnly(dtToday);     // hanya tanggal
+    setOffsetMs(0);               // jam real-time
   };
 
-  // Baca di mount + saat tab kembali aktif + polling ringan
+  // baca saat mount + ketika tab aktif + polling ringan
   useEffect(() => {
-    readFakeCookie();
-
-    const onVis = () => {
-      if (document.visibilityState === "visible") readFakeCookie();
-    };
+    readFakeCookies();
+    const onVis = () => document.visibilityState === "visible" && readFakeCookies();
     document.addEventListener("visibilitychange", onVis);
-
-    const poll = setInterval(readFakeCookie, 5000);
-
-    return () => {
-      document.removeEventListener("visibilitychange", onVis);
-      clearInterval(poll);
-    };
+    const poll = setInterval(readFakeCookies, 5000);
+    return () => { document.removeEventListener("visibilitychange", onVis); clearInterval(poll); };
   }, []);
 
-  // Realtime clock (Hari, dd/mm/yyyy | hh.mm.ss)
+  // Realtime clock (ikuti offset fake jika ada)
   useEffect(() => {
     const tick = () => {
-      const now = new Date();
-
-      // Format waktu WIB (real-time)
-      const waktu = new Intl.DateTimeFormat("id-ID", {
-        timeZone: "Asia/Jakarta",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      })
-        .format(now)
-        .replace(/:/g, "."); // hh.mm.ss
-
-      // Tanggal + hari:
-      // - jika fakeDate ada → pakai fakeDate untuk hari & tanggal
-      // - jika tidak ada → pakai now (WIB)
-      const baseDate = fakeDate ?? now;
+      const base = new Date(Date.now() + offsetMs); // jika fake-now ada → jam & menit ikut ini
+      const hariTanggalBase = fakeDateOnly ?? base; // jika hanya fake-today → pakai tanggal palsu
 
       const hari = new Intl.DateTimeFormat("id-ID", {
         weekday: "long",
         timeZone: "Asia/Jakarta",
-      }).format(baseDate);
+      }).format(hariTanggalBase);
 
       const tanggal = new Intl.DateTimeFormat("id-ID", {
         timeZone: "Asia/Jakarta",
@@ -89,8 +86,18 @@ const Navlink = ({ user }: Props) => {
         month: "2-digit",
         year: "numeric",
       })
-        .format(baseDate)
+        .format(hariTanggalBase)
         .replaceAll("-", "/"); // dd/mm/yyyy
+
+      const waktu = new Intl.DateTimeFormat("id-ID", {
+        timeZone: "Asia/Jakarta",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })
+        .format(base)
+        .replace(/:/g, "."); // hh.mm.ss
 
       setNowStr(`${hari}, ${tanggal} | ${waktu}`);
     };
@@ -98,24 +105,18 @@ const Navlink = ({ user }: Props) => {
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, [fakeDate]);
+  }, [offsetMs, fakeDateOnly]);
 
   // Tutup dropdown kalau klik di luar
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleReload = () => {
-    router.refresh();
-    setOpen(false);
-  };
-
+  const handleReload = () => { router.refresh(); setOpen(false); };
   const handleLogout = () => {
     localStorage.removeItem("authUser");
     setOpen(false);
@@ -123,17 +124,13 @@ const Navlink = ({ user }: Props) => {
   };
 
   const roleLabel =
-    user.role === "staff"
-      ? "Dosen"
-      : user.role === "student"
-      ? "Mahasiswa"
-      : user.role === "admin"
-      ? "Admin"
-      : "Pengguna";
+    user.role === "staff" ? "Dosen" :
+    user.role === "student" ? "Mahasiswa" :
+    user.role === "admin" ? "Admin" : "Pengguna";
 
   return (
     <ul className="flex items-center text-[#6C757D] text-[14px] leading-1.5 font-normal">
-      {/* Waktu realtime di kiri */}
+      {/* Waktu realtime / fake */}
       <li className="px-[15px] hidden md:flex items-center font-mono tabular-nums">
         {nowStr}
       </li>
@@ -165,37 +162,18 @@ const Navlink = ({ user }: Props) => {
         ref={dropdownRef}
         className="relative text-[14px] px-[15px] flex items-center cursor-pointer"
       >
-        <button
-          onClick={() => setOpen(!open)}
-          className="flex flex-row gap-1 items-center focus:outline-none"
-        >
-          <Image
-            className="rounded-full"
-            src="/foto_dosen.jpg"
-            alt="foto"
-            width={32}
-            height={32}
-          />
+        <button onClick={() => setOpen(!open)} className="flex flex-row gap-1 items-center focus:outline-none">
+          <Image className="rounded-full" src="/foto_dosen.jpg" alt="foto" width={32} height={32} />
           <span className="hidden md:flex ml-1">{user.name}</span>
-          <Image
-            src="/dropdown.png"
-            className="hidden md:flex"
-            alt="dropdown"
-            width={10}
-            height={10}
-          />
+          <Image src="/dropdown.png" className="hidden md:flex" alt="dropdown" width={10} height={10} />
         </button>
 
         <div
-          className={`
-            absolute right-0 top-full mt-5 w-42.5 p-1.25 bg-white border border-gray-200 
-            rounded-md shadow-sm z-50 transform transition-all duration-200 ease-out
-            ${open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}
-          `}
+          className={`absolute right-0 top-full mt-5 w-42.5 p-1.25 bg-white border border-gray-200 
+                      rounded-md shadow-sm z-50 transform transition-all duration-200 ease-out
+                      ${open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}`}
         >
-          <p className="block px-5 py-3.75 text-xs font-bold text-[#343A40]">
-            Selamat datang!
-          </p>
+          <p className="block px-5 py-3.75 text-xs font-bold text-[#343A40]">Selamat datang!</p>
 
           <button
             type="button"
