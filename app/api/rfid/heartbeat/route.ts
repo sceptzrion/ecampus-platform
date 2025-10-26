@@ -1,6 +1,7 @@
 // app/api/rfid/heartbeat/route.ts
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
+import { getNowWIB } from "@/lib/fake-time";
 
 /**
  * Header:
@@ -10,7 +11,6 @@ import { getPool } from "@/lib/db";
  * Body (opsional):
  * { uptime_ms?: number, fw?: string }
  */
-
 export async function POST(req: Request) {
   const pool = getPool();
   const conn = await pool.getConnection();
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     if (!readerId || !readerSecret) {
       return NextResponse.json({ error: "missing reader headers" }, { status: 401 });
     }
-    const body = await req.json().catch(()=> ({}));
+    const body = await req.json().catch(() => ({}));
 
     const [[r]] = await conn.query<any[]>(
       "SELECT id, secret, is_active FROM rfid_readers WHERE id=?",
@@ -36,18 +36,16 @@ export async function POST(req: Request) {
     }
 
     await conn.query(
-      `UPDATE rfid_readers
-          SET last_heartbeat = NOW()
-        WHERE id=?`,
+      `UPDATE rfid_readers SET last_heartbeat = NOW() WHERE id=?`,
       [readerId]
     );
 
-    // balas juga server time WIB agar device bisa sinkron
-    const [[now]] = await conn.query<any[]>(`SELECT NOW() AS wib_now`);
+    const now = await getNowWIB(conn);
+
     return NextResponse.json({
       ok: true,
-      server_time_wib: now.wib_now, // "YYYY-MM-DD HH:MM:SS"
-      advice: { scan_cooldown_ms: 2000 }, // rekomendasi minimal jeda antar scan UID sama
+      server_time_wib: now.wib_now,     // <- ikut fake kalau ada
+      advice: { scan_cooldown_ms: 2000 },
       echo: { uptime_ms: body?.uptime_ms ?? null, fw: body?.fw ?? null },
     });
   } catch (e: any) {

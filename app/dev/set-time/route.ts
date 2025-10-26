@@ -1,8 +1,9 @@
+// app/dev/set-time/route.ts
 import { NextResponse } from "next/server";
 import { assertDev } from "@/lib/dev-guard";
+import { getPool } from "@/lib/db";
 
-// GET /dev/set-time?date=YYYY-MM-DD
-// GET /dev/set-time?dt=YYYY-MM-DDTHH:mm
+// GET /dev/set-time?date=YYYY-MM-DD[&time=HH:MM(:SS)]
 // GET /dev/set-time?clear=1
 export async function GET(req: Request) {
   try {
@@ -13,42 +14,56 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const date = url.searchParams.get("date");
-  const dt = url.searchParams.get("dt");      // NEW
+  const time = url.searchParams.get("time");
   const clear = url.searchParams.get("clear");
 
-  const res = NextResponse.json({
-    ok: true,
-    date: date || null,
-    dt: dt || null,
-    cleared: !!clear,
-  });
+  const pool = getPool();
+  const conn = await pool.getConnection();
 
-  if (clear) {
-    res.cookies.set("x-fake-today", "", { path: "/", maxAge: 0 });
-    res.cookies.set("x-fake-now", "",   { path: "/", maxAge: 0 });
-    return res;
-  }
+  try {
+    await conn.query("SET time_zone = '+07:00'");
 
-  // Prioritas: dt > date
-  if (dt) {
-    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dt)) {
-      return NextResponse.json({ ok: false, error: "Format dt salah (YYYY-MM-DDTHH:mm)" }, { status: 400 });
+    const res = NextResponse.json({ ok: true, cleared: !!clear, date: date || null, time: time || null });
+
+    if (clear) {
+      // hapus fake time global
+      await conn.query(`INSERT INTO app_settings(\`key\`, \`value\`)
+                        VALUES('fake_now_wib', NULL)
+                        ON DUPLICATE KEY UPDATE \`value\`=VALUES(\`value\`)`);
+      // hapus cookie UI
+      res.cookies.set("x-fake-today", "", { path: "/", maxAge: 0 });
+      return res;
     }
-    // Simpan keduanya utk kompatibilitas
-    res.cookies.set("x-fake-now", dt,           { path: "/", maxAge: 60 * 60 * 12 });
-    res.cookies.set("x-fake-today", dt.slice(0,10), { path: "/", maxAge: 60 * 60 * 12 });
-    return res;
-  }
 
-  if (date) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    // Validasi input
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return NextResponse.json({ ok: false, error: "Format tanggal salah (YYYY-MM-DD)" }, { status: 400 });
     }
-    res.cookies.set("x-fake-today", date, { path: "/", maxAge: 60 * 60 * 12 });
-    // juga set x-fake-now di pukul 00:00 agar komponen lain bisa baca jam
-    res.cookies.set("x-fake-now", `${date}T00:00`, { path: "/", maxAge: 60 * 60 * 12 });
-    return res;
-  }
+    let hhmmss = "00:00:00";
+    if (time) {
+      if (!/^\d{2}:\d{2}(:\d{2})?$/.test(time)) {
+        return NextResponse.json({ ok: false, error: "Format time salah (HH:MM atau HH:MM:SS)" }, { status: 400 });
+      }
+      hhmmss = time.length === 5 ? `${time}:00` : time;
+    }
 
-  return NextResponse.json({ ok: false, error: "Butuh ?date=... atau ?dt=..." }, { status: 400 });
+    const dt = `${date} ${hhmmss}`; // WIB
+    // Simpan global fake time
+    await conn.query(
+      `INSERT INTO app_settings(\`key\`, \`value\`)
+       VALUES('fake_now_wib', ?)
+       ON DUPLICATE KEY UPDATE \`value\`=VALUES(\`value\`)`,
+      [dt]
+    );
+
+    // Cookie UI tetap simpan tanggal (biar komponen yang pakai date-only tetap dapat highlight)
+    res.cookies.set("x-fake-today", date, { path: "/", maxAge: 60 * 60 * 12 });
+
+    return res;
+  } catch (e: any) {
+    console.error(e);
+    return NextResponse.json({ ok: false, error: e.message || "set-time failed" }, { status: 500 });
+  } finally {
+    try { conn.release(); } catch {}
+  }
 }
